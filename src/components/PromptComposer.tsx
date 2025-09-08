@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Textarea } from './ui/Textarea';
 import { Button } from './ui/Button';
 import { useAppStore } from '../store/useAppStore';
@@ -13,6 +14,7 @@ import { ImagePasteToast } from './ImagePasteToast';
 import { cn } from '../utils/cn';
 
 export const PromptComposer: React.FC = () => {
+  const { t } = useTranslation(['ui', 'common']);
   const {
     currentPrompt,
     setCurrentPrompt,
@@ -63,14 +65,14 @@ export const PromptComposer: React.FC = () => {
     try {
       if (selectedTool === 'generate') {
         // Generate 模式不支持图片上传
-        showError('Image upload not supported in Generate mode');
+        showError(t('ui:toast.imageUploadNotSupported'));
         return;
       } else if (selectedTool === 'edit') {
         if (editReferenceImages.length < 2) {
           addEditReferenceImage(imageData.dataUrl);
-          showSuccess('Style reference image pasted successfully');
+          showSuccess(t('ui:toast.stylePastedSuccess'));
         } else {
-          showError('Maximum 2 style reference images allowed');
+          showError(t('ui:toast.maxImagesReached'));
         }
         if (!canvasImage) {
           setCanvasImage(imageData.dataUrl);
@@ -79,10 +81,10 @@ export const PromptComposer: React.FC = () => {
         clearUploadedImages();
         addUploadedImage(imageData.dataUrl);
         setCanvasImage(imageData.dataUrl);
-        showSuccess('Image pasted and set as edit target');
+        showSuccess(t('ui:toast.imagePastedSuccess'));
       }
     } catch {
-      showError('Failed to paste image, please try again');
+      showError(t('ui:toast.imagePasteFailed'));
     }
   };
   
@@ -156,9 +158,9 @@ export const PromptComposer: React.FC = () => {
   };
 
   const tools = [
-    { id: 'generate', icon: Wand2, label: 'Generate', description: 'Create from text' },
-    { id: 'edit', icon: Edit3, label: 'Edit', description: 'Modify existing' },
-    { id: 'mask', icon: MousePointer, label: 'Select', description: 'Click to select' },
+    { id: 'generate', icon: Wand2, label: t('ui:tools.generate'), description: t('ui:tools.descriptions.generate') },
+    { id: 'edit', icon: Edit3, label: t('ui:tools.edit'), description: t('ui:tools.descriptions.edit') },
+    { id: 'mask', icon: MousePointer, label: t('ui:tools.mask'), description: t('ui:tools.descriptions.mask') },
   ] as const;
 
   if (!showPromptPanel) {
@@ -167,7 +169,7 @@ export const PromptComposer: React.FC = () => {
         <button
           onClick={() => setShowPromptPanel(true)}
           className="w-6 h-16 bg-gray-800 hover:bg-gray-700 rounded-r-lg border border-l-0 border-gray-700 flex items-center justify-center transition-colors group"
-          title="Show Prompt Panel"
+          title={t('ui:promptComposer.showPanel')}
         >
           <div className="flex flex-col space-y-1">
             <div className="w-1 h-1 bg-gray-500 group-hover:bg-gray-400 rounded-full"></div>
@@ -184,7 +186,7 @@ export const PromptComposer: React.FC = () => {
       <div className="w-80 lg:w-72 xl:w-80 h-full bg-gray-950 border-r border-gray-800 p-6 flex flex-col space-y-6 overflow-y-auto">
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-gray-300">Mode</h3>
+          <h3 className="text-sm font-medium text-gray-300">{t('ui:promptComposer.mode')}</h3>
           <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
@@ -199,7 +201,7 @@ export const PromptComposer: React.FC = () => {
               size="icon"
               onClick={() => setShowPromptPanel(false)}
               className="h-6 w-6"
-              title="Hide Prompt Panel"
+              title={t('ui:promptComposer.hidePanel')}
             >
               ×
             </Button>
@@ -228,15 +230,15 @@ export const PromptComposer: React.FC = () => {
       {selectedTool !== 'generate' && (
         <div>
           <label className="text-sm font-medium text-gray-300 mb-1 block">
-            {selectedTool === 'edit' ? 'Style References' : 'Upload Image'}
+            {selectedTool === 'edit' ? t('ui:promptComposer.labels.styleReferences') : t('ui:promptComposer.labels.uploadImage')}
           </label>
           
           {selectedTool === 'mask' && (
-            <p className="text-xs text-gray-400 mb-3">Edit an image with masks</p>
+            <p className="text-xs text-gray-400 mb-3">{t('ui:promptComposer.upload.editDescription')}</p>
           )}
           {selectedTool === 'edit' && (
             <p className="text-xs text-gray-500 mb-3">
-              {canvasImage ? 'Optional style references, up to 2 images' : 'Upload image to edit, up to 2 images'}
+              {canvasImage ? t('ui:promptComposer.upload.editStyleHint') : t('ui:promptComposer.upload.editUploadHint')}
             </p>
           )}
 
@@ -271,7 +273,7 @@ export const PromptComposer: React.FC = () => {
                 "text-sm font-medium transition-colors",
                 isDragOver ? "text-purple-400" : "text-gray-300"
               )}>
-                {isDragOver ? "Drop image here" : "Drag & drop, paste, or"}
+                {isDragOver ? t('ui:promptComposer.upload.dropHere') : t('ui:promptComposer.upload.dragDrop')}
               </p>
               
               <Button
@@ -281,11 +283,11 @@ export const PromptComposer: React.FC = () => {
                 className="text-xs"
                 disabled={selectedTool === 'edit' && editReferenceImages.length >= 2}
               >
-                Choose File
+                {t('ui:promptComposer.buttons.chooseFile')}
               </Button>
               
               <p className="text-xs text-gray-500 mt-1">
-                PNG, JPEG, GIF, WebP • Max 10MB • Ctrl+V
+                {t('ui:promptComposer.upload.formats')}
               </p>
             </div>
           </div>
@@ -293,8 +295,8 @@ export const PromptComposer: React.FC = () => {
           {isDragOver && (
             <div className="absolute inset-0 bg-purple-400/10 border-2 border-purple-400 rounded-lg flex items-center justify-center">
               <div className="text-center">
-                <div className="text-purple-400 font-medium mb-1">Release to upload</div>
-                <div className="text-xs text-purple-300">Will be processed automatically</div>
+                <div className="text-purple-400 font-medium mb-1">{t('ui:promptComposer.upload.releaseToUpload')}</div>
+                <div className="text-xs text-purple-300">{t('ui:promptComposer.upload.willBeProcessed')}</div>
               </div>
             </div>
           )}
@@ -317,7 +319,7 @@ export const PromptComposer: React.FC = () => {
                     ×
                   </button>
                   <div className="absolute bottom-1 left-1 bg-gray-900/80 text-xs px-2 py-1 rounded text-gray-300">
-                    Ref {index + 1}
+                    {t('ui:promptComposer.upload.referenceLabel', { index: index + 1 })}
                   </div>
                 </div>
               ))}
@@ -329,15 +331,15 @@ export const PromptComposer: React.FC = () => {
       {/* Prompt Input */}
       <div>
         <label className="text-sm font-medium text-gray-300 mb-3 block">
-          {selectedTool === 'generate' ? 'Describe what you want to create' : 'Describe your changes'}
+          {selectedTool === 'generate' ? t('ui:promptComposer.labels.describeCreate') : t('ui:promptComposer.labels.describeChanges')}
         </label>
         <Textarea
           value={currentPrompt}
           onChange={(e) => setCurrentPrompt(e.target.value)}
           placeholder={
             selectedTool === 'generate'
-              ? 'A serene mountain landscape at sunset with a lake reflecting the golden sky...'
-              : 'Make the sky more dramatic, add storm clouds...'
+              ? t('ui:promptComposer.placeholders.generate')
+              : t('ui:promptComposer.placeholders.edit')
           }
           className="min-h-[120px] resize-none"
         />
@@ -357,8 +359,8 @@ export const PromptComposer: React.FC = () => {
               )} />
             )}
             <span className="text-gray-500 group-hover:text-gray-400">
-              {currentPrompt.length < 20 ? 'Add detail for better results' :
-               currentPrompt.length < 50 ? 'Good detail level' : 'Excellent prompt detail'}
+              {currentPrompt.length < 20 ? t('ui:promptComposer.quality.addDetail') :
+               currentPrompt.length < 50 ? t('ui:promptComposer.quality.goodLevel') : t('ui:promptComposer.quality.excellentDetail')}
             </span>
           </button>
         </div>
@@ -372,7 +374,7 @@ export const PromptComposer: React.FC = () => {
         className="w-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300"
       >
         <Sparkles className="h-4 w-4 mr-2" />
-        Optimize Prompt
+        {t('ui:promptComposer.buttons.optimizePrompt')}
       </Button>
 
 
@@ -385,12 +387,12 @@ export const PromptComposer: React.FC = () => {
         {isGenerating ? (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
-            Generating...
+            {t('common:states.generating')}
           </>
         ) : (
           <>
             <Wand2 className="h-4 w-4 mr-2" />
-            {selectedTool === 'generate' ? 'Generate' : 'Apply Edit'}
+            {selectedTool === 'generate' ? t('ui:promptComposer.buttons.generateImage') : t('ui:promptComposer.buttons.applyEdit')}
           </>
         )}
       </Button>
@@ -402,7 +404,7 @@ export const PromptComposer: React.FC = () => {
           className="flex items-center text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200"
         >
           {showAdvanced ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
-          {showAdvanced ? 'Hide' : 'Show'} Advanced Controls
+          {showAdvanced ? t('ui:promptComposer.advanced.hide') : t('ui:promptComposer.advanced.show')}
         </button>
         
         <button
@@ -410,13 +412,13 @@ export const PromptComposer: React.FC = () => {
           className="flex items-center text-sm text-gray-400 hover:text-red-400 transition-colors duration-200 mt-2"
         >
           <RotateCcw className="h-4 w-4 mr-2" />
-          Clear Session
+          {t('ui:promptComposer.advanced.clearSession')}
         </button>
         
         {showClearConfirm && (
           <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
             <p className="text-xs text-gray-300 mb-3">
-              Are you sure you want to clear this session? This will remove all uploads, prompts, and canvas content.
+              {t('ui:promptComposer.advanced.clearConfirm')}
             </p>
             <div className="flex space-x-2">
               <Button
@@ -425,7 +427,7 @@ export const PromptComposer: React.FC = () => {
                 onClick={handleClearSession}
                 className="flex-1"
               >
-                Yes, Clear
+                {t('ui:promptComposer.advanced.yesClear')}
               </Button>
               <Button
                 variant="outline"
@@ -433,7 +435,7 @@ export const PromptComposer: React.FC = () => {
                 onClick={() => setShowClearConfirm(false)}
                 className="flex-1"
               >
-                Cancel
+                {t('common:actions.cancel')}
               </Button>
             </div>
           </div>
@@ -444,7 +446,7 @@ export const PromptComposer: React.FC = () => {
             {/* Temperature */}
             <div>
               <label className="text-xs text-gray-400 mb-2 block">
-                Creativity ({temperature})
+                {t('ui:promptComposer.labels.creativity')} ({temperature})
               </label>
               <input
                 type="range"
@@ -460,13 +462,13 @@ export const PromptComposer: React.FC = () => {
             {/* Seed */}
             <div>
               <label className="text-xs text-gray-400 mb-2 block">
-                Seed (optional)
+                {t('ui:promptComposer.labels.seedOptional')}
               </label>
               <input
                 type="number"
                 value={seed || ''}
                 onChange={(e) => setSeed(e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="Random"
+                placeholder={t('ui:promptComposer.placeholders.seedRandom')}
                 className="w-full h-8 px-2 bg-gray-900 border border-gray-700 rounded text-xs text-gray-100"
               />
             </div>
@@ -476,26 +478,26 @@ export const PromptComposer: React.FC = () => {
 
       {/* Keyboard Shortcuts */}
       <div className="pt-4 border-t border-gray-800">
-        <h4 className="text-xs font-medium text-gray-400 mb-2">Shortcuts</h4>
+        <h4 className="text-xs font-medium text-gray-400 mb-2">{t('ui:promptComposer.shortcuts.title')}</h4>
         <div className="space-y-1 text-xs text-gray-500">
           <div className="flex justify-between">
-            <span>Generate</span>
+            <span>{t('ui:promptComposer.shortcuts.generate')}</span>
             <span>⌘ + Enter</span>
           </div>
           <div className="flex justify-between">
-            <span>Re-roll</span>
+            <span>{t('ui:promptComposer.shortcuts.reroll')}</span>
             <span>⇧ + R</span>
           </div>
           <div className="flex justify-between">
-            <span>Edit mode</span>
+            <span>{t('ui:promptComposer.shortcuts.editMode')}</span>
             <span>E</span>
           </div>
           <div className="flex justify-between">
-            <span>History</span>
+            <span>{t('ui:promptComposer.shortcuts.history')}</span>
             <span>H</span>
           </div>
           <div className="flex justify-between">
-            <span>Toggle Panel</span>
+            <span>{t('ui:promptComposer.shortcuts.togglePanel')}</span>
             <span>P</span>
           </div>
         </div>

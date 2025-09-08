@@ -1,0 +1,63 @@
+{
+  "hints": {
+    "title": "Prompt Quality Tips",
+    "subtitle": "How to write effective prompts",
+    "categories": {
+      "subject": "subject",
+      "scene": "scene", 
+      "action": "action",
+      "style": "style",
+      "camera": "camera"
+    },
+    "tips": [
+      {
+        "category": "subject",
+        "text": "Be specific about the main subject",
+        "example": "\"A vintage red bicycle\" vs \"bicycle\""
+      },
+      {
+        "category": "scene",
+        "text": "Describe the environment and setting",
+        "example": "\"in a cobblestone alley during golden hour\""
+      },
+      {
+        "category": "action",
+        "text": "Include movement or activity",
+        "example": "\"cyclist pedaling through puddles\""
+      },
+      {
+        "category": "style",
+        "text": "Specify artistic style or mood",
+        "example": "\"cinematic photography, moody lighting\""
+      },
+      {
+        "category": "camera",
+        "text": "Add camera perspective details",
+        "example": "\"shot with 85mm lens, shallow depth of field\""
+      }
+    ],
+    "bestPractice": "Write full sentences that describe the complete scene, not just keywords. Think \"paint me a picture with words.\""
+  },
+  "optimizer": {
+    "title": "Prompt Optimizer",
+    "subtitle": "Optimize your prompts based on Google Gemini best practices",
+    "configNotAvailable": "Prompt optimization feature not configured",
+    "configHint": "Please configure VITE_OPENAI_API_KEY in environment variables to enable this feature",
+    "originalPrompt": "Original Prompt",
+    "optimizedPrompt": "Optimized Prompt",
+    "empty": "(Empty)",
+    "optimizing": "Optimizing...",
+    "optimizePrompt": "Optimize Prompt",
+    "retry": "Retry",
+    "reOptimize": "Re-optimize",
+    "optimized": "Optimized",
+    "keyImprovements": "Key improvements",
+    "optimizationNotes": "Optimization Notes",
+    "applyOptimization": "Apply Optimization",
+    "canEdit": "You can further edit the optimized prompt.",
+    "placeholder": "Optimized prompt...",
+    "tip": "The AI Optimizer follows Google Gemini's official best practices to refine your prompts with greater specificity and detail, providing enhanced scenario descriptions to generate higher-quality images.",
+    "enterPromptFirst": "Please enter an original prompt first",
+    "optimizationFailed": "Optimization failed, please retry"
+  }
+}

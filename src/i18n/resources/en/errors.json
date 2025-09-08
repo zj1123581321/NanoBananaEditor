@@ -1,0 +1,24 @@
+{
+  "network": {
+    "connectionFailed": "Connection failed. Please check your internet connection.",
+    "timeout": "Request timed out. Please try again.",
+    "serverError": "Server error. Please try again later."
+  },
+  "api": {
+    "quotaExceeded": "API quota exceeded. Please try again later.",
+    "invalidRequest": "Invalid request format.",
+    "contentBlocked": "Content blocked by safety filters.",
+    "modelUnavailable": "AI model temporarily unavailable."
+  },
+  "image": {
+    "uploadFailed": "Failed to upload image. Please try again.",
+    "formatNotSupported": "Image format not supported.",
+    "fileTooLarge": "File size too large. Maximum 10MB allowed.",
+    "processingFailed": "Image processing failed."
+  },
+  "general": {
+    "unknownError": "An unexpected error occurred.",
+    "tryAgain": "Please try again.",
+    "contactSupport": "If the problem persists, please contact support."
+  }
+}

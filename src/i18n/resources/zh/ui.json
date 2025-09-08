@@ -1,0 +1,130 @@
+{
+  "header": {
+    "title": "Nano Banana AI 图像编辑器",
+    "titleShort": "NB 编辑器"
+  },
+  "tools": {
+    "generate": "生成",
+    "edit": "编辑", 
+    "mask": "选择",
+    "descriptions": {
+      "generate": "从文本创建",
+      "edit": "修改现有图像",
+      "mask": "点击选择区域"
+    }
+  },
+  "promptComposer": {
+    "mode": "模式",
+    "showPanel": "显示提示词面板",
+    "hidePanel": "隐藏提示词面板",
+    "labels": {
+      "styleReferences": "风格参考",
+      "uploadImage": "上传图像",
+      "describeCreate": "描述您想要创建的图像",
+      "describeChanges": "描述您的修改需求",
+      "creativity": "创造性",
+      "seed": "随机种子",
+      "seedOptional": "随机种子（可选）"
+    },
+    "placeholders": {
+      "generate": "一个宁静的山景，夕阳西下，湖水映照着金色的天空...",
+      "edit": "让天空更加戏剧化，添加暴风雨云...",
+      "seedRandom": "随机"
+    },
+    "buttons": {
+      "generateImage": "生成图像",
+      "applyEdit": "应用编辑",
+      "optimizePrompt": "优化提示词",
+      "chooseFile": "选择文件"
+    },
+    "upload": {
+      "dragDrop": "拖拽、粘贴，或",
+      "dropHere": "将图像拖放到此处",
+      "releaseToUpload": "松开以上传",
+      "willBeProcessed": "将自动处理",
+      "formats": "PNG, JPEG, GIF, WebP • 最大 10MB • Ctrl+V",
+      "editDescription": "使用遮罩编辑图像",
+      "editStyleHint": "可选的风格参考，最多2张图片",
+      "editUploadHint": "上传要编辑的图像，最多2张图片",
+      "referenceLabel": "参考 {{index}}"
+    },
+    "advanced": {
+      "show": "显示高级控制",
+      "hide": "隐藏高级控制",
+      "clearSession": "清除会话",
+      "clearConfirm": "确定要清除此会话吗？这将删除所有上传、提示词和画布内容。",
+      "yesClear": "是的，清除"
+    },
+    "quality": {
+      "addDetail": "添加细节以获得更好的结果",
+      "goodLevel": "良好的细节级别",
+      "excellentDetail": "出色的提示词细节"
+    },
+    "shortcuts": {
+      "title": "快捷键",
+      "generate": "生成",
+      "reroll": "重新生成",
+      "editMode": "编辑模式",
+      "history": "历史记录",
+      "togglePanel": "切换面板"
+    }
+  },
+  "canvas": {
+    "zoom": "缩放",
+    "pan": "平移",
+    "brush": "画笔",
+    "eraser": "橡皮擦",
+    "masks": "遮罩",
+    "download": "下载",
+    "welcome": "欢迎使用 Nano Banana 框架",
+    "startGenerate": "在提示词框中开始描述您想要创建的内容",
+    "uploadToEdit": "上传图像开始编辑",
+    "creatingImage": "正在创建您的图像...",
+    "brushStroke": "笔触",
+    "brushStrokes": "笔触",
+    "poweredBy": "由 Gemini 2.5 Flash Image 提供支持"
+  },
+  "history": {
+    "title": "历史记录和变体",
+    "empty": "暂无生成记录",
+    "compare": "对比",
+    "project": "项目",
+    "generation": "生成",
+    "outputs": "个输出",
+    "showPanel": "显示历史面板",
+    "hidePanel": "隐藏历史面板",
+    "currentVariants": "当前变体",
+    "currentImage": "当前图像",
+    "generationDetails": "生成详情",
+    "dimensions": "尺寸:",
+    "mode": "模式:",
+    "prompt": "提示词:",
+    "model": "模型:",
+    "seed": "种子:",
+    "referenceImages": "参考图像",
+    "originalImage": "原始图像",
+    "maskedReference": "遮罩参考",
+    "editInstruction": "编辑指令:",
+    "type": "类型:",
+    "created": "创建时间:",
+    "imageEdit": "图像编辑",
+    "maskApplied": "已应用",
+    "selectToView": "选择一个生成或编辑项来查看详情",
+    "download": "下载",
+    "generatedVariant": "生成变体",
+    "editedVariant": "编辑变体",
+    "edit": "编辑",
+    "reference": "参考",
+    "mask": "遮罩",
+    "referenceImageDesc": "此参考图像用于指导生成过程",
+    "originalImageDesc": "被编辑的基础图像",
+    "maskedReferenceDesc": "此带遮罩覆盖的图像被发送给AI模型以指导编辑"
+  },
+  "toast": {
+    "imageUploadNotSupported": "生成模式不支持图像上传",
+    "stylePastedSuccess": "风格参考图像粘贴成功",
+    "maxImagesReached": "最多允许2张风格参考图像",
+    "imagePastedSuccess": "图像已粘贴并设为编辑目标",
+    "imagePasteFailed": "图像粘贴失败，请重试"
+  }
+}

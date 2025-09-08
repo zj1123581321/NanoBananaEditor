@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Wand2, Sparkles, CheckCircle, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from './ui/Button';
 import { openaiService, PromptOptimizationRequest, PromptOptimizationResponse } from '../services/openaiService';
@@ -21,6 +22,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
   onClose,
   className
 }) => {
+  const { t } = useTranslation(['prompts', 'common', 'errors']);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimization, setOptimization] = useState<PromptOptimizationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
 
   const handleOptimize = async () => {
     if (!originalPrompt.trim()) {
-      setError('Please enter an original prompt first');
+      setError(t('prompts:optimizer.enterPromptFirst'));
       return;
     }
 
@@ -50,7 +52,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
       setOptimization(response);
       setEditedPrompt(response.optimizedPrompt);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '优化失败，请重试');
+      setError(err instanceof Error ? err.message : t('prompts:optimizer.optimizationFailed'));
     } finally {
       setIsOptimizing(false);
     }
@@ -74,9 +76,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <div className="flex items-center gap-2 text-amber-800">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Prompt 优化功能未配置</p>
+            <p className="font-medium">{t('prompts:optimizer.configNotAvailable')}</p>
             <p className="text-sm text-amber-600 mt-1">
-              请在环境变量中配置 VITE_OPENAI_API_KEY 以启用此功能
+              {t('prompts:optimizer.configHint')}
             </p>
           </div>
         </div>
@@ -86,7 +88,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           onClick={onClose}
           className="mt-3"
         >
-          关闭
+          {t('common:actions.close')}
         </Button>
       </div>
     );
@@ -100,7 +102,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           <div className="flex items-center gap-2">
             <Wand2 className="w-5 h-5 text-purple-600" />
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-              Prompt Optimizer
+              {t('prompts:optimizer.title')}
             </h3>
             <Sparkles className="w-4 h-4 text-yellow-500" />
           </div>
@@ -114,7 +116,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           </Button>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Optimize your prompts based on Google Gemini best practices
+          {t('prompts:optimizer.subtitle')}
         </p>
       </div>
 
@@ -122,10 +124,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         {/* 原始 Prompt */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Original Prompt
+            {t('prompts:optimizer.originalPrompt')}
           </label>
           <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-3 text-sm text-gray-800 dark:text-gray-200 border">
-            {originalPrompt || '(Empty)'}
+            {originalPrompt || t('prompts:optimizer.empty')}
           </div>
         </div>
 
@@ -140,12 +142,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
               {isOptimizing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Optimizing...
+                  {t('prompts:optimizer.optimizing')}
                 </>
               ) : (
                 <>
                   <Wand2 className="w-4 h-4 mr-2" />
-                  Optimize Prompt
+                  {t('prompts:optimizer.optimizePrompt')}
                 </>
               )}
             </Button>
@@ -173,7 +175,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
               onClick={handleReset}
               className="mt-2"
             >
-              Retry
+              {t('prompts:optimizer.retry')}
             </Button>
           </div>
         )}
@@ -184,10 +186,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {/* 优化后的 Prompt */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Optimized Prompt
+                {t('prompts:optimizer.optimizedPrompt')}
                 <span className="text-xs text-green-600 ml-2 inline-flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />
-                  Optimized
+                  {t('prompts:optimizer.optimized')}
                 </span>
               </label>
               <textarea
@@ -196,10 +198,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 className="w-full h-32 p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md 
                          bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
                          focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                placeholder="Optimized prompt..."
+                placeholder={t('prompts:optimizer.placeholder')}
               />
               <p className="text-xs text-gray-500 mt-1">
-                You can further edit the optimized prompt.
+                {t('prompts:optimizer.canEdit')}
               </p>
             </div>
 
@@ -207,7 +209,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {optimization.improvements.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Key improvements
+                  {t('prompts:optimizer.keyImprovements')}
                 </label>
                 <ul className="space-y-1">
                   {optimization.improvements.map((improvement, index) => (
@@ -224,7 +226,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {optimization.reasoning && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Optimization Notes
+                  {t('prompts:optimizer.optimizationNotes')}
                 </label>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -241,14 +243,14 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 className="flex-1"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Apply Optimization
+                {t('prompts:optimizer.applyOptimization')}
               </Button>
               <Button
                 variant="outline"
                 onClick={handleReset}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Re-optimize
+                {t('prompts:optimizer.reOptimize')}
               </Button>
             </div>
           </div>
@@ -258,7 +260,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 
                       border border-purple-200 dark:border-purple-800 rounded-md p-3">
           <p className="text-xs text-purple-800 dark:text-purple-200">
-            💡 <strong>PS：</strong>The AI Optimizer follows Google Gemini's official best practices to refine your prompts with greater specificity and detail, providing enhanced scenario descriptions to generate higher-quality images.
+            💡 <strong>PS：</strong>{t('prompts:optimizer.tip')}
           </p>
         </div>
       </div>

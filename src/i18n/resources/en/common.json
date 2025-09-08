@@ -1,0 +1,30 @@
+{
+  "appName": "Nano Banana AI Image Editor",
+  "appNameShort": "NB Editor",
+  "version": "1.0",
+  "actions": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "copy": "Copy",
+    "clear": "Clear",
+    "apply": "Apply",
+    "generate": "Generate",
+    "upload": "Upload",
+    "download": "Download",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "states": {
+    "loading": "Loading...",
+    "generating": "Generating...",
+    "processing": "Processing...",
+    "success": "Success",
+    "error": "Error",
+    "completed": "Completed",
+    "failed": "Failed"
+  }
+}

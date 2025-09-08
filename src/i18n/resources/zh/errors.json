@@ -1,0 +1,24 @@
+{
+  "network": {
+    "connectionFailed": "连接失败。请检查您的网络连接。",
+    "timeout": "请求超时。请重试。",
+    "serverError": "服务器错误。请稍后重试。"
+  },
+  "api": {
+    "quotaExceeded": "API 配额已超出。请稍后重试。",
+    "invalidRequest": "请求格式无效。",
+    "contentBlocked": "内容被安全过滤器阻止。",
+    "modelUnavailable": "AI 模型暂时不可用。"
+  },
+  "image": {
+    "uploadFailed": "图像上传失败。请重试。",
+    "formatNotSupported": "不支持的图像格式。",
+    "fileTooLarge": "文件大小过大。最大允许 10MB。",
+    "processingFailed": "图像处理失败。"
+  },
+  "general": {
+    "unknownError": "发生未知错误。",
+    "tryAgain": "请重试。",
+    "contactSupport": "如果问题持续存在，请联系技术支持。"
+  }
+}

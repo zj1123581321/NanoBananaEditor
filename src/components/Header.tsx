@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Languages } from 'lucide-react';
 import { InfoModal } from './InfoModal';
+import { useAppStore } from '../store/useAppStore';
 
 export const Header: React.FC = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const { t, i18n } = useTranslation('ui');
+  const { currentLanguage, setCurrentLanguage } = useAppStore();
+  
+  const toggleLanguage = () => {
+    const newLang = currentLanguage === 'en' ? 'zh' : 'en';
+    setCurrentLanguage(newLang);
+    i18n.changeLanguage(newLang);
+  };
 
   return (
     <>
@@ -13,10 +23,10 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-2">
             <div className="text-2xl">🍌</div>
             <h1 className="text-xl font-semibold text-gray-100 hidden md:block">
-              Nano Banana AI Image Editor
+              {t('header.title')}
             </h1>
             <h1 className="text-xl font-semibold text-gray-100 md:hidden">
-              NB Editor
+              {t('header.titleShort')}
             </h1>
           </div>
           <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
@@ -24,15 +34,24 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
           <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={toggleLanguage}
+            title={`Switch to ${currentLanguage === 'en' ? '中文' : 'English'}`}
+          >
+            <Languages className="h-5 w-5" />
+          </Button>
+          
+          {/* <Button 
             variant="ghost" 
             size="icon"
             onClick={() => setShowInfoModal(true)}
           >
             <HelpCircle className="h-5 w-5" />
-          </Button>
-        </div> */}
+          </Button> */}
+        </div>
       </header>
       
       <InfoModal open={showInfoModal} onOpenChange={setShowInfoModal} />

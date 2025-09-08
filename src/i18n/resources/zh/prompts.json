@@ -1,0 +1,63 @@
+{
+  "hints": {
+    "title": "提示词质量技巧",
+    "subtitle": "如何编写有效的提示词",
+    "categories": {
+      "subject": "主体",
+      "scene": "场景",
+      "action": "动作",
+      "style": "风格",
+      "camera": "镜头"
+    },
+    "tips": [
+      {
+        "category": "subject",
+        "text": "对主体进行具体描述",
+        "example": "\"一辆复古红色自行车\" vs \"自行车\""
+      },
+      {
+        "category": "scene",
+        "text": "描述环境和背景设置",
+        "example": "\"在黄金时刻的鹅卵石小巷中\""
+      },
+      {
+        "category": "action",
+        "text": "包含动作或活动",
+        "example": "\"骑车者踩着踏板穿过水坑\""
+      },
+      {
+        "category": "style",
+        "text": "指定艺术风格或氛围",
+        "example": "\"电影摄影，情绪灯光\""
+      },
+      {
+        "category": "camera",
+        "text": "添加相机视角细节",
+        "example": "\"85mm镜头拍摄，浅景深\""
+      }
+    ],
+    "bestPractice": "编写完整的句子来描述完整的场景，而不仅仅是关键词。想象\"用文字为我画一幅图\"。"
+  },
+  "optimizer": {
+    "title": "提示词优化器",
+    "subtitle": "基于Google Gemini最佳实践优化您的提示词",
+    "configNotAvailable": "提示词优化功能未配置",
+    "configHint": "请在环境变量中配置 VITE_OPENAI_API_KEY 以启用此功能",
+    "originalPrompt": "原始提示词",
+    "optimizedPrompt": "优化后的提示词",
+    "empty": "（空）",
+    "optimizing": "正在优化...",
+    "optimizePrompt": "优化提示词",
+    "retry": "重试",
+    "reOptimize": "重新优化",
+    "optimized": "已优化",
+    "keyImprovements": "关键改进",
+    "optimizationNotes": "优化说明",
+    "applyOptimization": "应用优化",
+    "canEdit": "您可以进一步编辑优化后的提示词。",
+    "placeholder": "优化后的提示词...",
+    "tip": "AI优化器遵循Google Gemini官方最佳实践，通过增强细节和场景描述来优化您的提示词，生成更高质量的图像。",
+    "enterPromptFirst": "请先输入原始提示词",
+    "optimizationFailed": "优化失败，请重试"
+  }
+}

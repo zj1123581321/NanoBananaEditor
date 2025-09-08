@@ -37,6 +37,9 @@ interface AppState {
   // UI state
   selectedTool: 'generate' | 'edit' | 'mask';
   
+  // Language settings
+  currentLanguage: 'en' | 'zh';
+  
   // Actions
   setCurrentProject: (project: Project | null) => void;
   setCanvasImage: (url: string | null) => void;
@@ -70,6 +73,8 @@ interface AppState {
   setShowPromptPanel: (show: boolean) => void;
   
   setSelectedTool: (tool: 'generate' | 'edit' | 'mask') => void;
+  
+  setCurrentLanguage: (language: 'en' | 'zh') => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,6 +105,8 @@ export const useAppStore = create<AppState>()(
       showPromptPanel: true,
       
       selectedTool: 'generate',
+      
+      currentLanguage: 'en',
       
       // Actions
       setCurrentProject: (project) => set({ currentProject: project }),
@@ -158,6 +165,12 @@ export const useAppStore = create<AppState>()(
       setShowPromptPanel: (show) => set({ showPromptPanel: show }),
       
       setSelectedTool: (tool) => set({ selectedTool: tool }),
+      
+      setCurrentLanguage: (language) => {
+        set({ currentLanguage: language });
+        // Persist language preference to localStorage
+        localStorage.setItem('i18nextLng', language);
+      },
     }),
     { name: 'nano-banana-store' }
   )

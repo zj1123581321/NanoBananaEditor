@@ -1,0 +1,130 @@
+{
+  "header": {
+    "title": "Nano Banana AI Image Editor",
+    "titleShort": "NB Editor"
+  },
+  "tools": {
+    "generate": "Generate",
+    "edit": "Edit", 
+    "mask": "Select",
+    "descriptions": {
+      "generate": "Create from text",
+      "edit": "Modify existing",
+      "mask": "Click to select"
+    }
+  },
+  "promptComposer": {
+    "mode": "Mode",
+    "showPanel": "Show Prompt Panel",
+    "hidePanel": "Hide Prompt Panel",
+    "labels": {
+      "styleReferences": "Style References",
+      "uploadImage": "Upload Image",
+      "describeCreate": "Describe what you want to create",
+      "describeChanges": "Describe your changes",
+      "creativity": "Creativity",
+      "seed": "Seed",
+      "seedOptional": "Seed (optional)"
+    },
+    "placeholders": {
+      "generate": "A serene mountain landscape at sunset with a lake reflecting the golden sky...",
+      "edit": "Make the sky more dramatic, add storm clouds...",
+      "seedRandom": "Random"
+    },
+    "buttons": {
+      "generateImage": "Generate Image",
+      "applyEdit": "Apply Edit",
+      "optimizePrompt": "Optimize Prompt",
+      "chooseFile": "Choose File"
+    },
+    "upload": {
+      "dragDrop": "Drag & drop, paste, or",
+      "dropHere": "Drop image here",
+      "releaseToUpload": "Release to upload",
+      "willBeProcessed": "Will be processed automatically",
+      "formats": "PNG, JPEG, GIF, WebP • Max 10MB • Ctrl+V",
+      "editDescription": "Edit an image with masks",
+      "editStyleHint": "Optional style references, up to 2 images",
+      "editUploadHint": "Upload image to edit, up to 2 images",
+      "referenceLabel": "Ref {{index}}"
+    },
+    "advanced": {
+      "show": "Show Advanced Controls",
+      "hide": "Hide Advanced Controls",
+      "clearSession": "Clear Session",
+      "clearConfirm": "Are you sure you want to clear this session? This will remove all uploads, prompts, and canvas content.",
+      "yesClear": "Yes, Clear"
+    },
+    "quality": {
+      "addDetail": "Add detail for better results",
+      "goodLevel": "Good detail level",
+      "excellentDetail": "Excellent prompt detail"
+    },
+    "shortcuts": {
+      "title": "Shortcuts",
+      "generate": "Generate",
+      "reroll": "Re-roll",
+      "editMode": "Edit mode",
+      "history": "History",
+      "togglePanel": "Toggle Panel"
+    }
+  },
+  "canvas": {
+    "zoom": "Zoom",
+    "pan": "Pan",
+    "brush": "Brush",
+    "eraser": "Eraser",
+    "masks": "Masks",
+    "download": "Download",
+    "welcome": "Welcome to Nano Banana Framework",
+    "startGenerate": "Start by describing what you want to create in the prompt box",
+    "uploadToEdit": "Upload an image to begin editing",
+    "creatingImage": "Creating your image...",
+    "brushStroke": "brush stroke",
+    "brushStrokes": "brush strokes",
+    "poweredBy": "Powered by Gemini 2.5 Flash Image"
+  },
+  "history": {
+    "title": "History & Variants",
+    "empty": "No generations yet",
+    "compare": "Compare",
+    "project": "Project",
+    "generation": "Generation",
+    "outputs": "outputs",
+    "showPanel": "Show History Panel",
+    "hidePanel": "Hide History Panel",
+    "currentVariants": "Current Variants",
+    "currentImage": "Current Image",
+    "generationDetails": "Generation Details",
+    "dimensions": "Dimensions:",
+    "mode": "Mode:",
+    "prompt": "Prompt:",
+    "model": "Model:",
+    "seed": "Seed:",
+    "referenceImages": "Reference Images",
+    "originalImage": "Original Image",
+    "maskedReference": "Masked Reference",
+    "editInstruction": "Edit Instruction:",
+    "type": "Type:",
+    "created": "Created:",
+    "imageEdit": "Image Edit",
+    "maskApplied": "Applied",
+    "selectToView": "Select a generation or edit to view details",
+    "download": "Download",
+    "generatedVariant": "Generated variant",
+    "editedVariant": "Edited variant",
+    "edit": "Edit",
+    "reference": "Ref",
+    "mask": "Mask",
+    "referenceImageDesc": "This reference image was used to guide the generation",
+    "originalImageDesc": "The base image that was edited",
+    "maskedReferenceDesc": "This image with mask overlay was sent to the AI model to guide the edit"
+  },
+  "toast": {
+    "imageUploadNotSupported": "Image upload not supported in Generate mode",
+    "stylePastedSuccess": "Style reference image pasted successfully",
+    "maxImagesReached": "Maximum 2 style reference images allowed",
+    "imagePastedSuccess": "Image pasted and set as edit target",
+    "imagePasteFailed": "Failed to paste image, please try again"
+  }
+}
