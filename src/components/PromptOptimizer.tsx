@@ -184,10 +184,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {/* 优化后的 Prompt */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                优化后的 Prompt
+                Optimized Prompt
                 <span className="text-xs text-green-600 ml-2 inline-flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" />
-                  已优化
+                  Optimized
                 </span>
               </label>
               <textarea
@@ -196,10 +196,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 className="w-full h-32 p-3 text-sm border border-gray-300 dark:border-gray-600 rounded-md 
                          bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
                          focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                placeholder="优化后的 prompt..."
+                placeholder="Optimized prompt..."
               />
               <p className="text-xs text-gray-500 mt-1">
-                您可以进一步编辑优化后的 prompt
+                You can further edit the optimized prompt.
               </p>
             </div>
 
@@ -207,7 +207,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {optimization.improvements.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  主要改进点
+                  Key improvements
                 </label>
                 <ul className="space-y-1">
                   {optimization.improvements.map((improvement, index) => (
@@ -224,7 +224,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             {optimization.reasoning && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  优化说明
+                  Optimization Notes
                 </label>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -241,14 +241,14 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 className="flex-1"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                应用优化
+                Apply Optimization
               </Button>
               <Button
                 variant="outline"
                 onClick={handleReset}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                重新优化
+                Re-optimize
               </Button>
             </div>
           </div>
