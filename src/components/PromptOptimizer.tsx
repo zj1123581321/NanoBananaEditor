@@ -258,8 +258,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 
                       border border-purple-200 dark:border-purple-800 rounded-md p-3">
           <p className="text-xs text-purple-800 dark:text-purple-200">
-            💡 <strong>提示：</strong>AI 优化器会根据 Google Gemini 官方最佳实践，
-            让您的 prompt 更加具体、详细，并提供更好的场景描述，从而生成更高质量的图像。
+            💡 <strong>PS：</strong>The AI Optimizer follows Google Gemini's official best practices to refine your prompts with greater specificity and detail, providing enhanced scenario descriptions to generate higher-quality images.
           </p>
         </div>
       </div>
