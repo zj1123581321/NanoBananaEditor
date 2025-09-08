@@ -348,7 +348,7 @@ export const ImageCanvas: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-500">
+            {/* <span className="text-xs text-gray-500">
               © 2025 Mark Fulton - 
               <a
                 href="https://www.reinventing.ai/"
@@ -358,7 +358,7 @@ export const ImageCanvas: React.FC = () => {
               >
                 Reinventing.AI Solutions
               </a>
-            </span>
+            </span> */}
             <span className="text-gray-600 hidden md:inline">•</span>
             <span className="text-yellow-400 hidden md:inline">⚡</span>
             <span className="hidden md:inline">Powered by Gemini 2.5 Flash Image</span>
