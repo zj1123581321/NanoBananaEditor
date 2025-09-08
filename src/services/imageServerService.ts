@@ -1,0 +1,276 @@
+/**
+ * 图片服务器前端接口服务
+ * 负责与Node.js图片服务器通信
+ */
+
+export interface SavedImage {
+  id: string;
+  fileName: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  md5: string;
+  createdAt: string;
+  error?: string;
+}
+
+export interface SaveImagesResponse {
+  success: boolean;
+  count: number;
+  images: SavedImage[];
+}
+
+export interface ImageServerConfig {
+  baseUrl: string;
+  timeout: number;
+  retryAttempts: number;
+}
+
+class ImageServerService {
+  private config: ImageServerConfig;
+
+  constructor(config?: Partial<ImageServerConfig>) {
+    this.config = {
+      baseUrl: config?.baseUrl || this.getDefaultServerUrl(),
+      timeout: config?.timeout || 10000,
+      retryAttempts: config?.retryAttempts || 3
+    };
+  }
+
+  /**
+   * 获取默认服务器URL
+   */
+  private getDefaultServerUrl(): string {
+    // 开发环境默认配置
+    if (import.meta.env.DEV) {
+      return 'http://localhost:3002';
+    }
+    
+    // 生产环境使用环境变量或相对路径
+    return import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3002';
+  }
+
+  /**
+   * 检查图片服务器健康状态
+   */
+  async healthCheck(): Promise<boolean> {
+    try {
+      const response = await this.fetchWithTimeout('/health');
+      const data = await response.json();
+      return data.status === 'ok';
+    } catch (error) {
+      console.warn('图片服务器健康检查失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 保存多张图片到服务器
+   * @param images 图片数据数组，包含base64数据和文件名
+   */
+  async saveImages(images: Array<{ data: string; name?: string }>): Promise<SavedImage[]> {
+    if (!images || images.length === 0) {
+      throw new Error('没有提供图片数据');
+    }
+
+    try {
+      console.log(`📤 准备保存 ${images.length} 张图片到服务器...`);
+
+      const response = await this.fetchWithTimeout('/api/images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ images })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+      }
+
+      const result: SaveImagesResponse = await response.json();
+      
+      if (!result.success) {
+        throw new Error('服务器返回保存失败');
+      }
+
+      const successCount = result.images.filter(img => !img.error).length;
+      console.log(`✅ 成功保存 ${successCount}/${images.length} 张图片`);
+
+      // 记录保存失败的图片
+      const failedImages = result.images.filter(img => img.error);
+      if (failedImages.length > 0) {
+        console.error('部分图片保存失败:', failedImages);
+      }
+
+      return result.images.filter(img => !img.error) as SavedImage[];
+
+    } catch (error) {
+      console.error('保存图片失败:', error);
+      throw new Error(`保存图片失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }
+
+  /**
+   * 保存单张图片
+   */
+  async saveImage(imageData: string, fileName?: string): Promise<SavedImage> {
+    const images = await this.saveImages([{ data: imageData, name: fileName }]);
+    
+    if (images.length === 0) {
+      throw new Error('图片保存失败');
+    }
+    
+    return images[0];
+  }
+
+  /**
+   * 获取图片列表
+   */
+  async getImageList(): Promise<SavedImage[]> {
+    try {
+      const response = await this.fetchWithTimeout('/api/images');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP错误: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.images || [];
+
+    } catch (error) {
+      console.error('获取图片列表失败:', error);
+      throw new Error(`获取图片列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }
+
+  /**
+   * 获取图片信息
+   */
+  async getImageInfo(fileName: string): Promise<any> {
+    try {
+      const response = await this.fetchWithTimeout(`/api/images/${fileName}/info`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('图片不存在');
+        }
+        throw new Error(`HTTP错误: ${response.status}`);
+      }
+
+      return await response.json();
+
+    } catch (error) {
+      console.error('获取图片信息失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除图片
+   */
+  async deleteImage(fileName: string): Promise<void> {
+    try {
+      const response = await this.fetchWithTimeout(`/api/images/${fileName}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('图片不存在');
+        }
+        throw new Error(`HTTP错误: ${response.status}`);
+      }
+
+      console.log(`🗑️ 删除图片成功: ${fileName}`);
+
+    } catch (error) {
+      console.error('删除图片失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 构造图片访问URL
+   */
+  getImageUrl(fileName: string): string {
+    return `${this.config.baseUrl}/images/${fileName}`;
+  }
+
+  /**
+   * 带超时的fetch请求
+   */
+  private async fetchWithTimeout(
+    url: string, 
+    options?: RequestInit
+  ): Promise<Response> {
+    const fullUrl = url.startsWith('http') ? url : `${this.config.baseUrl}${url}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    try {
+      const response = await fetch(fullUrl, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`请求超时 (${this.config.timeout}ms)`);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * 重试机制的fetch
+   */
+  private async fetchWithRetry(
+    url: string, 
+    options?: RequestInit,
+    attempt: number = 1
+  ): Promise<Response> {
+    try {
+      return await this.fetchWithTimeout(url, options);
+    } catch (error) {
+      if (attempt < this.config.retryAttempts) {
+        console.warn(`请求失败，第 ${attempt} 次重试:`, error);
+        await this.delay(1000 * attempt); // 递增延迟
+        return this.fetchWithRetry(url, options, attempt + 1);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 延迟函数
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(config: Partial<ImageServerConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * 获取当前配置
+   */
+  getConfig(): ImageServerConfig {
+    return { ...this.config };
+  }
+}
+
+// 导出单例实例
+export const imageServerService = new ImageServerService();
+export default imageServerService;

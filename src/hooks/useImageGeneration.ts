@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { geminiService, GenerationRequest, EditRequest } from '../services/geminiService';
+import { integratedGenerationService, IntegratedGenerationRequest, IntegratedEditRequest } from '../services/integratedGenerationService';
 import { useAppStore } from '../store/useAppStore';
 import { generateId } from '../utils/imageUtils';
 import { Generation, Edit, Asset } from '../types';
@@ -9,22 +10,33 @@ export const useImageGeneration = () => {
 
   const generateMutation = useMutation({
     mutationFn: async (request: GenerationRequest) => {
-      const images = await geminiService.generateImage(request);
-      return images;
+      // 使用集成生成服务，自动包含通知功能
+      const integratedRequest: IntegratedGenerationRequest = {
+        ...request,
+        enableNotification: true // 默认启用通知
+      };
+      console.log('🚀 开始调用集成生成服务...', integratedRequest);
+      const result = await integratedGenerationService.generateImage(integratedRequest);
+      console.log('✅ 集成生成服务返回结果:', result);
+      return result;
     },
     onMutate: () => {
       setIsGenerating(true);
     },
-    onSuccess: (images, request) => {
+    onSuccess: (result, request) => {
+      const { images } = result;
+      console.log('✅ 图片生成成功，已保存到服务器:', images.length, '张');
+      
       if (images.length > 0) {
-        const outputAssets: Asset[] = images.map((base64, index) => ({
+        // 使用服务器的HTTP URL而不是base64
+        const outputAssets: Asset[] = images.map((savedImage) => ({
           id: generateId(),
           type: 'output',
-          url: `data:image/png;base64,${base64}`,
+          url: savedImage.url, // 使用HTTP URL
           mime: 'image/png',
-          width: 1024, // Default Gemini output size
+          width: 1024,
           height: 1024,
-          checksum: base64.slice(0, 32) // Simple checksum
+          checksum: savedImage.md5
         }));
 
         const generation: Generation = {
@@ -105,7 +117,7 @@ export const useImageEditing = () => {
   const editMutation = useMutation({
     mutationFn: async (instruction: string) => {
       // Always use canvas image as primary target if available, otherwise use first uploaded image
-      const sourceImage = canvasImage || uploadedImages[0];
+      const sourceImage = canvasImage;
       if (!sourceImage) throw new Error('No image to edit');
       
       // Convert canvas image to base64
@@ -202,31 +214,38 @@ export const useImageEditing = () => {
         referenceImages = [maskedReferenceImage, ...referenceImages];
       }
       
-      const request: EditRequest = {
+      const integratedRequest: IntegratedEditRequest = {
         instruction,
         originalImage: base64Image,
         referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         maskImage,
         temperature,
-        seed
+        seed,
+        enableNotification: true // 默认启用通知
       };
       
-      const images = await geminiService.editImage(request);
-      return { images, maskedReferenceImage };
+      console.log('✏️ 开始调用集成编辑服务...', integratedRequest);
+      const result = await integratedGenerationService.editImage(integratedRequest);
+      console.log('✅ 集成编辑服务返回结果:', result);
+      return { result, maskedReferenceImage };
     },
     onMutate: () => {
       setIsGenerating(true);
     },
-    onSuccess: ({ images, maskedReferenceImage }, instruction) => {
+    onSuccess: ({ result, maskedReferenceImage }, instruction) => {
+      const { images } = result;
+      console.log('✅ 图片编辑成功，已保存到服务器:', images.length, '张');
+      
       if (images.length > 0) {
-        const outputAssets: Asset[] = images.map((base64, index) => ({
+        // 使用服务器的HTTP URL而不是base64
+        const outputAssets: Asset[] = images.map((savedImage) => ({
           id: generateId(),
           type: 'output',
-          url: `data:image/png;base64,${base64}`,
+          url: savedImage.url, // 使用HTTP URL
           mime: 'image/png',
           width: 1024,
           height: 1024,
-          checksum: base64.slice(0, 32)
+          checksum: savedImage.md5
         }));
 
         // Create mask reference asset if we have one
