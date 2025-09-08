@@ -3,9 +3,13 @@ import { Textarea } from './ui/Textarea';
 import { Button } from './ui/Button';
 import { useAppStore } from '../store/useAppStore';
 import { useImageGeneration, useImageEditing } from '../hooks/useImageGeneration';
-import { Upload, Wand2, Edit3, MousePointer, HelpCircle, Menu, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
+import { useImagePaste, useImagePasteStatus } from '../hooks/useImagePaste';
+import { useImageDrop } from '../hooks/useImageDrop';
+import { Upload, Wand2, Edit3, MousePointer, HelpCircle, ChevronDown, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
 import { blobToBase64 } from '../utils/imageUtils';
 import { PromptHints } from './PromptHints';
+import { PromptOptimizer } from './PromptOptimizer';
+import { ImagePasteToast } from './ImagePasteToast';
 import { cn } from '../utils/cn';
 
 export const PromptComposer: React.FC = () => {
@@ -39,7 +43,54 @@ export const PromptComposer: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showHintsModal, setShowHintsModal] = useState(false);
+  const [showPromptOptimizer, setShowPromptOptimizer] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 图片粘贴功能
+  const { status, showSuccess, showError, hide } = useImagePasteStatus();
+  
+  // 拖拽上传功能
+  const uploadAreaRef = useRef<HTMLDivElement>(null);
+  const { isDragOver } = useImageDrop({
+    onImageDropped: handleImageAdded,
+    onError: showError,
+    enabled: true,
+    targetElement: uploadAreaRef.current
+  });
+
+  // 统一的图片处理函数
+  function handleImageAdded(imageData: { dataUrl: string }) {
+    try {
+      if (selectedTool === 'generate') {
+        // Generate 模式不支持图片上传
+        showError('Image upload not supported in Generate mode');
+        return;
+      } else if (selectedTool === 'edit') {
+        if (editReferenceImages.length < 2) {
+          addEditReferenceImage(imageData.dataUrl);
+          showSuccess('Style reference image pasted successfully');
+        } else {
+          showError('Maximum 2 style reference images allowed');
+        }
+        if (!canvasImage) {
+          setCanvasImage(imageData.dataUrl);
+        }
+      } else if (selectedTool === 'mask') {
+        clearUploadedImages();
+        addUploadedImage(imageData.dataUrl);
+        setCanvasImage(imageData.dataUrl);
+        showSuccess('Image pasted and set as edit target');
+      }
+    } catch {
+      showError('Failed to paste image, please try again');
+    }
+  };
+  
+  useImagePaste({
+    onImagePasted: handleImageAdded,
+    onError: showError,
+    enabled: true
+  });
 
   const handleGenerate = () => {
     if (!currentPrompt.trim()) return;
@@ -130,7 +181,7 @@ export const PromptComposer: React.FC = () => {
 
   return (
     <>
-    <div className="w-80 lg:w-72 xl:w-80 h-full bg-gray-950 border-r border-gray-800 p-6 flex flex-col space-y-6 overflow-y-auto">
+      <div className="w-80 lg:w-72 xl:w-80 h-full bg-gray-950 border-r border-gray-800 p-6 flex flex-col space-y-6 overflow-y-auto">
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-300">Mode</h3>
@@ -173,48 +224,86 @@ export const PromptComposer: React.FC = () => {
         </div>
       </div>
 
-      {/* File Upload */}
-      <div>
+      {/* File Upload - Only show for edit and mask modes */}
+      {selectedTool !== 'generate' && (
         <div>
           <label className="text-sm font-medium text-gray-300 mb-1 block">
-            {selectedTool === 'generate' ? 'Reference Images' : selectedTool === 'edit' ? 'Style References' : 'Upload Image'}
+            {selectedTool === 'edit' ? 'Style References' : 'Upload Image'}
           </label>
+          
           {selectedTool === 'mask' && (
             <p className="text-xs text-gray-400 mb-3">Edit an image with masks</p>
-          )}
-          {selectedTool === 'generate' && (
-            <p className="text-xs text-gray-500 mb-3">Optional, up to 2 images</p>
           )}
           {selectedTool === 'edit' && (
             <p className="text-xs text-gray-500 mb-3">
               {canvasImage ? 'Optional style references, up to 2 images' : 'Upload image to edit, up to 2 images'}
             </p>
           )}
+
+          {/* Upload Area with Drag & Drop */}
+          <div
+            ref={uploadAreaRef}
+            className={cn(
+              "relative border-2 border-dashed rounded-lg p-3 transition-all duration-200",
+              isDragOver
+                ? "border-purple-400 bg-purple-400/10"
+                : "border-gray-600 hover:border-gray-500",
+              (selectedTool === 'edit' && editReferenceImages.length >= 2) && "opacity-50 pointer-events-none"
+            )}
+          >
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileUpload}
             className="hidden"
+            disabled={selectedTool === 'edit' && editReferenceImages.length >= 2}
           />
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full"
-            disabled={
-              (selectedTool === 'generate' && uploadedImages.length >= 2) ||
-              (selectedTool === 'edit' && editReferenceImages.length >= 2)
-            }
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
+          
+          <div className="text-center">
+            <Upload className={cn(
+              "h-6 w-6 mx-auto mb-2 transition-colors",
+              isDragOver ? "text-purple-400" : "text-gray-400"
+            )} />
+            
+            <div className="space-y-1">
+              <p className={cn(
+                "text-sm font-medium transition-colors",
+                isDragOver ? "text-purple-400" : "text-gray-300"
+              )}>
+                {isDragOver ? "Drop image here" : "Drag & drop, paste, or"}
+              </p>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs"
+                disabled={selectedTool === 'edit' && editReferenceImages.length >= 2}
+              >
+                Choose File
+              </Button>
+              
+              <p className="text-xs text-gray-500 mt-1">
+                PNG, JPEG, GIF, WebP • Max 10MB • Ctrl+V
+              </p>
+            </div>
+          </div>
+
+          {isDragOver && (
+            <div className="absolute inset-0 bg-purple-400/10 border-2 border-purple-400 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-purple-400 font-medium mb-1">Release to upload</div>
+                <div className="text-xs text-purple-300">Will be processed automatically</div>
+              </div>
+            </div>
+          )}
+          </div>
           
           {/* Show uploaded images preview */}
-          {((selectedTool === 'generate' && uploadedImages.length > 0) || 
-            (selectedTool === 'edit' && editReferenceImages.length > 0)) && (
+          {selectedTool === 'edit' && editReferenceImages.length > 0 && (
             <div className="mt-3 space-y-2">
-              {(selectedTool === 'generate' ? uploadedImages : editReferenceImages).map((image, index) => (
+              {editReferenceImages.map((image, index) => (
                 <div key={index} className="relative">
                   <img
                     src={image}
@@ -222,7 +311,7 @@ export const PromptComposer: React.FC = () => {
                     className="w-full h-20 object-cover rounded-lg border border-gray-700"
                   />
                   <button
-                    onClick={() => selectedTool === 'generate' ? removeUploadedImage(index) : removeEditReferenceImage(index)}
+                    onClick={() => removeEditReferenceImage(index)}
                     className="absolute top-1 right-1 bg-gray-900/80 text-gray-400 hover:text-gray-200 rounded-full p-1 transition-colors"
                   >
                     ×
@@ -235,7 +324,7 @@ export const PromptComposer: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* Prompt Input */}
       <div>
@@ -253,25 +342,38 @@ export const PromptComposer: React.FC = () => {
           className="min-h-[120px] resize-none"
         />
         
-        {/* Prompt Quality Indicator */}
-        <button 
-          onClick={() => setShowHintsModal(true)}
-          className="mt-2 flex items-center text-xs hover:text-gray-400 transition-colors group"
-        >
-          {currentPrompt.length < 20 ? (
-            <HelpCircle className="h-3 w-3 mr-2 text-red-500 group-hover:text-red-400" />
-          ) : (
-            <div className={cn(
-              'h-2 w-2 rounded-full mr-2',
-              currentPrompt.length < 50 ? 'bg-yellow-500' : 'bg-green-500'
-            )} />
-          )}
-          <span className="text-gray-500 group-hover:text-gray-400">
-            {currentPrompt.length < 20 ? 'Add detail for better results' :
-             currentPrompt.length < 50 ? 'Good detail level' : 'Excellent prompt detail'}
-          </span>
-        </button>
+        <div className="mt-2 flex items-center justify-between">
+          {/* Prompt Quality Indicator */}
+          <button 
+            onClick={() => setShowHintsModal(true)}
+            className="flex items-center text-xs hover:text-gray-400 transition-colors group"
+          >
+            {currentPrompt.length < 20 ? (
+              <HelpCircle className="h-3 w-3 mr-2 text-red-500 group-hover:text-red-400" />
+            ) : (
+              <div className={cn(
+                'h-2 w-2 rounded-full mr-2',
+                currentPrompt.length < 50 ? 'bg-yellow-500' : 'bg-green-500'
+              )} />
+            )}
+            <span className="text-gray-500 group-hover:text-gray-400">
+              {currentPrompt.length < 20 ? 'Add detail for better results' :
+               currentPrompt.length < 50 ? 'Good detail level' : 'Excellent prompt detail'}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {/* Prompt Optimizer Button */}
+      <Button
+        onClick={() => setShowPromptOptimizer(true)}
+        disabled={!currentPrompt.trim()}
+        variant="outline"
+        className="w-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 hover:border-purple-500/40 text-purple-400 hover:text-purple-300"
+      >
+        <Sparkles className="h-4 w-4 mr-2" />
+        Optimize Prompt
+      </Button>
 
 
       {/* Generate Button */}
@@ -398,9 +500,35 @@ export const PromptComposer: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
-    {/* Prompt Hints Modal */}
-    <PromptHints open={showHintsModal} onOpenChange={setShowHintsModal} />
+      </div>
+      
+      {/* Modals and Overlays */}
+      <PromptHints open={showHintsModal} onOpenChange={setShowHintsModal} />
+      
+      {/* Prompt Optimizer Modal */}
+      {showPromptOptimizer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <PromptOptimizer
+              originalPrompt={currentPrompt}
+              mode={selectedTool === 'generate' ? 'generate' : 'edit'}
+              onOptimizedPrompt={(optimizedPrompt) => {
+                setCurrentPrompt(optimizedPrompt);
+                setShowPromptOptimizer(false);
+              }}
+              onClose={() => setShowPromptOptimizer(false)}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Image Paste Toast */}
+      <ImagePasteToast
+        isVisible={status.isActive}
+        message={status.message}
+        type={status.type}
+        onClose={hide}
+      />
     </>
   );
 };
