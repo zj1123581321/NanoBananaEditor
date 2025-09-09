@@ -161,15 +161,42 @@ export const ImageCanvas: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (canvasImage) {
-      if (canvasImage.startsWith('data:')) {
+      try {
+        let downloadUrl = canvasImage;
+        
+        // 如果是 HTTP URL，需要先获取图片数据
+        if (canvasImage.startsWith('http')) {
+          console.log('📥 下载 HTTP 图片:', canvasImage);
+          
+          // 使用 fetch 获取图片数据并转换为 blob
+          const response = await fetch(canvasImage);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status}`);
+          }
+          
+          const blob = await response.blob();
+          downloadUrl = URL.createObjectURL(blob);
+        }
+        
+        // 创建下载链接
         const link = document.createElement('a');
-        link.href = canvasImage;
+        link.href = downloadUrl;
         link.download = `nano-banana-${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
+        // 如果创建了临时 URL，记得释放
+        if (canvasImage.startsWith('http')) {
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+        }
+        
+        console.log('✅ 图片下载成功');
+      } catch (error) {
+        console.error('❌ 图片下载失败:', error);
+        // 可以考虑添加用户通知
       }
     }
   };
