@@ -30,14 +30,20 @@ const APP_MODE = process.env.VITE_APP_MODE || 'standalone';
 // 中间件配置
 const allowedOrigins = [
   'http://localhost:3000',  // 生产前端
+  'http://localhost:3002',  // 统一架构服务器自身
   'http://localhost:5173',  // 开发前端 (Vite)
   'http://localhost:5174',  // 备用前端端口
-  'http://localhost:3003',  // 管理后台
+  'http://localhost:3003',  // 管理后台开发服务器
 ];
 
 // 在开发模式下允许更多源
 if (process.env.NODE_ENV === 'development' || APP_MODE === 'multi-user') {
-  allowedOrigins.push('http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3003');
+  allowedOrigins.push(
+    'http://127.0.0.1:3000', 
+    'http://127.0.0.1:3002',  // 统一架构服务器自身(127.0.0.1)
+    'http://127.0.0.1:5173', 
+    'http://127.0.0.1:3003'
+  );
 }
 
 app.use(cors({
@@ -568,6 +574,86 @@ ${imageLinks}
     }
   };
 }
+
+// ====== 静态文件服务 ======
+
+/**
+ * 静态文件服务配置
+ * 主前端: / 根路径
+ * 管理后台: /admin/ 路径  
+ */
+const frontendDistPath = path.join(__dirname, '../dist');
+const adminDistPath = path.join(__dirname, '../admin/dist');
+
+// 管理后台静态文件 - 优先级高，先匹配
+app.use('/admin', express.static(adminDistPath, {
+  maxAge: '1d',
+  setHeaders: (res, path, stat) => {
+    // 设置缓存头
+    if (path.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache');
+    } else {
+      res.set('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+// 主前端静态文件
+app.use('/', express.static(frontendDistPath, {
+  maxAge: '1d',
+  setHeaders: (res, path, stat) => {
+    // 设置缓存头
+    if (path.endsWith('.html')) {
+      res.set('Cache-Control', 'no-cache');
+    } else {
+      res.set('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+// ====== SPA History API 支持 ======
+
+/**
+ * 管理后台 SPA 路由支持
+ * 所有 /admin/* 请求都返回 admin/index.html
+ */
+app.get('/admin/*', (req, res, next) => {
+  // 跳过 API 请求和静态资源
+  if (req.path.startsWith('/admin/api/') || 
+      req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
+    return next();
+  }
+  
+  const adminIndexPath = path.join(adminDistPath, 'index.html');
+  res.sendFile(adminIndexPath, (err) => {
+    if (err) {
+      console.error('发送管理后台页面失败:', err);
+      res.status(500).json({ error: '页面加载失败' });
+    }
+  });
+});
+
+/**
+ * 主前端 SPA 路由支持
+ * 所有非 API、非静态资源的请求都返回主前端的 index.html
+ */
+app.get('*', (req, res, next) => {
+  // 跳过 API 请求、静态资源和 admin 路径
+  if (req.path.startsWith('/api/') || 
+      req.path.startsWith('/images/') ||
+      req.path.startsWith('/admin/') ||
+      req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
+    return next();
+  }
+  
+  const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+  res.sendFile(frontendIndexPath, (err) => {
+    if (err) {
+      console.error('发送前端页面失败:', err);
+      res.status(500).json({ error: '页面加载失败' });
+    }
+  });
+});
 
 // ====== 多用户模式下的额外 API ======
 
