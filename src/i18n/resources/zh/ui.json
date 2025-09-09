@@ -126,5 +126,14 @@
     "maxImagesReached": "最多允许2张风格参考图像",
     "imagePastedSuccess": "图像已粘贴并设为编辑目标",
     "imagePasteFailed": "图像粘贴失败，请重试"
+  },
+  "user": {
+    "profile": "个人资料",
+    "logout": "退出登录",
+    "admin": "管理员",
+    "user": "用户",
+    "logoutConfirm": "确定要退出登录吗？",
+    "yes": "确定",
+    "cancel": "取消"
   }
 }

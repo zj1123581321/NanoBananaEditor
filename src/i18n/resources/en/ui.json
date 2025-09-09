@@ -126,5 +126,14 @@
     "maxImagesReached": "Maximum 2 style reference images allowed",
     "imagePastedSuccess": "Image pasted and set as edit target",
     "imagePasteFailed": "Failed to paste image, please try again"
+  },
+  "user": {
+    "profile": "Profile",
+    "logout": "Logout",
+    "admin": "Admin",
+    "user": "User",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "yes": "Yes",
+    "cancel": "Cancel"
   }
 }
