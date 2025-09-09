@@ -12,7 +12,7 @@ require('dotenv').config();
 
 // 配置
 const IMAGE_SERVER_URL = 'http://localhost:3002';
-const WEBHOOK_URL = process.env.WECOM_WEBHOOK_URL || process.env.VITE_WECOM_WEBHOOK_URL || '';
+const WEBHOOK_URL = process.env.VITE_WECOM_WEBHOOK_URL || '';
 
 /**
  * 生成测试图片的base64数据 (1x1像素的PNG)

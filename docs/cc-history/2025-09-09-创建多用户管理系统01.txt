@@ -1,0 +1,2213 @@
+╭─────────────────────────────────────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                                                       │
+│                                                                                 │
+│   /help for help, /status for your current setup                                │
+│                                                                                 │
+│   cwd: D:\MyFolders\Developments\0Python\250908_AIImageEditor\NanoBananaEditor  │
+╰─────────────────────────────────────────────────────────────────────────────────╯
+
+> @NanoBananaEditor\docs\architecture.md
+  @NanoBananaEditor\docs\design.md
+
+  现在假如我想要给这个系统增加一个简单的用户管理系统，然后这个系统要支持以下功能。第一点是所有账户密码由管理员统一创
+  建，不允许用户自行注册。第二点是需统计每个用户的历史使用情况，即他消耗了多少 
+  token，以及有多少行为日志。第三点是可以记录用户的历史聊天记录。
+
+  先不用考虑具体的代码更改，我们先聊一聊方案，就是怎样设计可以最小化地将这个系统接入进来，同时支持系统可以配置是否启
+  用多用户管理系统。如果过程中有任何不明确的地方，请向我提问。
+
+✻ Thinking…
+
+  用户想要给系统增加一个简单的用户管理系统，具备以下功能：
+  1. 所有账户密码由管理员统一创建，不允许用户自行注册
+  2. 需统计每个用户的历史使用情况（token消耗、行为日志）
+  3. 可以记录用户的历史聊天记录
+  
+  并且用户希望：
+  - 最小化接入
+  - 支持配置是否启用多用户管理系统
+  
+  用户明确说了先不用考虑具体的代码更改，先聊方案。并且从CLAUDE.md看到我应该用中文回复。
+  
+  我应该先阅读现有的架构文档，了解当前系统的设计，然后基于现有架构提出用户管理系统的设计方案。
+  
+  我需要先读取architecture.md和design.md文件来了解当前系统的架构。
+
+● 我来先了解一下现有系统的架构设计，然后为您提供一个最小化接入的用户管理系统方案。
+
+● Read(docs\architecture.md)
+  ⎿  Read 422 lines (ctrl+r to expand)
+
+● Read(docs\design.md)
+  ⎿  Read 562 lines (ctrl+r to expand)
+
+✻ Thinking…
+
+  好的，我已经了解了现有系统的架构。从文档可以看到，这是一个基于 React + TypeScript 的 AI 图像编辑器，使用 Google 
+  Gemini 2.5 Flash Image 模型。现有架构包括：
+
+  1. 前端架构：
+    - React 18.3.1 + TypeScript 5.5.3
+    - Zustand 状态管理
+    - React Query 服务器状态管理
+    - Konva.js 用于画布交互
+    - IndexedDB 用于本地缓存
+  2. 核心功能：
+    - AI 图像生成
+    - 智能图像编辑
+    - 区域感知编辑（遮罩）
+    - 项目管理和历史记录
+    - 离线缓存
+  3. 当前架构特点：
+    - 无后端，纯前端应用
+    - 直接调用 Google Gemini API
+    - 使用 IndexedDB 存储项目和资源
+    - 单用户设计
+
+  现在用户希望添加用户管理系统，需要：
+  1. 管理员统一创建账户，不允许用户自行注册
+  2. 统计用户的 token 使用和行为日志
+  3. 记录用户的历史聊天记录
+  4. 支持配置是否启用多用户管理系统
+
+  基于现有架构，我需要设计一个最小化接入的方案。让我从几个维度来考虑：
+
+  1. 架构层面：需要引入后端服务
+  2. 数据层面：需要设计用户、统计、日志相关的数据模型
+
+  3. 认证层面：需要简单的认证机制
+
+  我会选择轻量级的认证解决方案。考虑到系统的简单性，可以采用 JWT（JSON Web 
+  Token）作为认证机制。这种方式轻量、无状态，适合前后端分离的架构。管理员可以通过后端服务生成和管理用户凭证，前端则通过
+   token 进行身份验证和权限控制。
+
+● 基于您现有系统的架构，我为您设计一个最小化接入的用户管理系统方案。
+
+  整体设计思路
+
+  1. 架构层面的最小化改动
+
+  后端服务引入
+  - 添加一个轻量级的 Node.js/Express 后端服务
+  - 作为 Gemini API 的代理，同时处理用户管理
+  - 保持现有前端架构不变，只需修改 API 调用层
+
+  配置化支持
+  // 环境配置
+  interface AppConfig {
+    multiUserEnabled: boolean;
+    backendUrl?: string;
+    authRequired: boolean;
+  }
+
+  2. 数据模型设计
+
+  // 用户模型
+  interface User {
+    id: string;
+    username: string;
+    role: 'admin' | 'user';
+    createdAt: number;
+    updatedAt: number;
+    status: 'active' | 'disabled';
+  }
+
+  // 使用统计模型
+  interface UserUsageStats {
+    userId: string;
+    date: string; // YYYY-MM-DD
+    tokenConsumed: number;
+    requestCount: number;
+    generationCount: number;
+    editCount: number;
+  }
+
+  // 行为日志模型
+  interface UserActionLog {
+    id: string;
+    userId: string;
+    action: 'generate' | 'edit' | 'upload' | 'download' | 'login' | 'logout';
+    details: Record<string, any>;
+    timestamp: number;
+    sessionId: string;
+  }
+
+  // 聊天记录模型
+  interface ChatHistory {
+    id: string;
+    userId: string;
+    projectId?: string;
+    prompt: string;
+    response?: string;
+    type: 'generate' | 'edit';
+    metadata: {
+      tokenUsed: number;
+      modelVersion: string;
+      parameters: Record<string, any>;
+    };
+    timestamp: number;
+  }
+
+  3. 系统架构调整
+
+  graph TB
+      subgraph "前端层 (基本不变)"
+          A[React App] --> B[Auth Service]
+          A --> C[Gemini Service]
+          A --> D[Cache Service]
+      end
+
+      subgraph "后端服务层 (新增)"
+          E[Auth API] --> F[User Management]
+          G[Proxy API] --> H[Gemini Proxy]
+          G --> I[Usage Tracking]
+          G --> J[Action Logging]
+          K[Admin API] --> L[Statistics]
+          K --> M[User CRUD]
+      end
+
+      subgraph "存储层"
+          N[SQLite/PostgreSQL]
+          O[IndexedDB (前端缓存)]
+      end
+
+      B --> E
+      C --> G
+      D --> O
+      F --> N
+      I --> N
+      J --> N
+      L --> N
+      M --> N
+
+  具体实现方案
+
+  1. 前端改动最小化
+
+  配置管理
+  // src/config/app.ts
+  export const appConfig = {
+    multiUserEnabled: import.meta.env.VITE_MULTI_USER_ENABLED === 'true',
+    backendUrl: import.meta.env.VITE_BACKEND_URL,
+    authRequired: import.meta.env.VITE_AUTH_REQUIRED === 'true'
+  };
+
+  认证服务适配器
+  // src/services/authService.ts
+  export class AuthService {
+    static async login(username: string, password: string) {
+      if (!appConfig.multiUserEnabled) return null;
+      // 调用后端登录接口
+    }
+
+    static getCurrentUser() {
+      if (!appConfig.multiUserEnabled) return null;
+      // 从 localStorage 或内存中获取当前用户
+    }
+  }
+
+  Gemini 服务代理化
+  // 修改现有的 src/services/geminiService.ts
+  export class GeminiService {
+    async generateImage(request: GenerationRequest): Promise<string[]> {
+      const endpoint = appConfig.multiUserEnabled
+        ? `${appConfig.backendUrl}/api/generate`
+        : 'direct-gemini-api';
+
+      // 统一的请求逻辑
+    }
+  }
+
+  2. 后端服务设计
+
+  技术栈建议
+  - 运行时: Node.js + TypeScript
+  - 框架: Express.js (轻量)
+  - 数据库: SQLite (开发) / PostgreSQL (生产)
+  - 认证: JWT + bcrypt
+  - ORM: Prisma (类型安全)
+
+  目录结构
+  backend/
+  ├── src/
+  │   ├── routes/
+  │   │   ├── auth.ts      # 认证相关
+  │   │   ├── gemini.ts    # Gemini API 代理
+  │   │   ├── users.ts     # 用户管理
+  │   │   └── stats.ts     # 统计接口
+  │   ├── middleware/
+  │   │   ├── auth.ts      # JWT 验证
+  │   │   └── logging.ts   # 请求日志
+  │   ├── services/
+  │   │   ├── userService.ts
+  │   │   ├── statsService.ts
+  │   │   └── geminiService.ts
+  │   └── models/
+  │       └── schema.prisma
+
+  3. 数据库设计
+
+  -- 用户表
+  CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'user',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    status TEXT DEFAULT 'active'
+  );
+
+  -- 使用统计表
+  CREATE TABLE usage_stats (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id),
+    date TEXT NOT NULL,
+    token_consumed INTEGER DEFAULT 0,
+    request_count INTEGER DEFAULT 0,
+    generation_count INTEGER DEFAULT 0,
+    edit_count INTEGER DEFAULT 0,
+    UNIQUE(user_id, date)
+  );
+
+  -- 行为日志表
+  CREATE TABLE action_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id),
+    action TEXT NOT NULL,
+    details TEXT, -- JSON
+    session_id TEXT,
+    timestamp INTEGER NOT NULL
+  );
+
+  -- 聊天历史表
+  CREATE TABLE chat_history (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id),
+    project_id TEXT,
+    prompt TEXT NOT NULL,
+    response TEXT,
+    type TEXT NOT NULL,
+    metadata TEXT, -- JSON
+    timestamp INTEGER NOT NULL
+  );
+
+  4. 渐进式接入策略
+
+  阶段 1: 基础架构
+  - 搭建后端服务框架
+  - 实现基本的用户认证
+  - Gemini API 代理功能
+
+  阶段 2: 统计功能
+  - 添加使用统计收集
+  - 实现行为日志记录
+  - 基础的管理界面
+
+  阶段 3: 完整功能
+  - 聊天历史记录
+  - 完善的统计报表
+  - 用户管理功能
+
+  几个关键问题需要确认
+
+  1. 数据库选择: 您倾向于使用 SQLite (简单部署) 还是 PostgreSQL (功能更强)?
+  2. 部署方式: 后端服务是否需要支持 Docker 容器化部署?
+  3. 统计粒度: Token 使用统计是否需要实时显示，还是定时批量更新即可?
+  4. 历史数据迁移: 现有的 IndexedDB 中的项目数据是否需要迁移到多用户系统?
+  5. 管理界面: 是否需要独立的管理后台，还是在现有界面中集成管理功能?
+
+  这个方案的优点是：
+  - 最小化前端改动，主要是配置和 API 调用层的修改
+  - 向后兼容，支持配置开关单用户/多用户模式
+  - 渐进式接入，可以分阶段实施
+  - 轻量级后端，不会显著增加系统复杂度
+
+  您觉得这个设计方向如何？有哪些地方需要调整吗？
+
+> 1. 如果使用 supabase 作为数据库可以降低整个系统复杂度吗？我已经有额外部署的 supabase docker 实例
+  2. 整个项目后续我是打算 docker 部署的。
+  3. token 统计无需实时，定时批量更新就行。
+  4 现有的 index db 
+  倒是不用迁移，因为我希望整个项目可以以两种方式运行。第一种方式是无需任何用户配置。第二种方式才是引入多用户系统。
+  5. 我希望有一个独立的后端，使用管理员账户密码进行登录。
+
+● 非常好的选择！使用 Supabase 可以大幅简化系统复杂度。让我重新设计一个基于 Supabase 的方案。
+
+● 基于 Supabase 的优化架构设计
+
+  使用 Supabase 确实可以大幅降低复杂度！这将为我们带来以下优势：
+
+  1. 系统复杂度大幅降低
+
+  原本需要自建的功能，Supabase 直接提供：
+  - ✅ 用户认证和授权 (内置 Auth)
+  - ✅ 实时数据库操作 (PostgreSQL + 实时订阅)
+  - ✅ RESTful API (自动生成)
+  - ✅ 行级安全策略 (RLS)
+  - ✅ 内置的用户管理
+
+  简化后的架构：
+
+● graph TB
+      subgraph "前端应用"
+          A[React App] --> B[Supabase Client]
+          A --> C[Gemini Proxy Service]
+      end
+
+      subgraph "轻量级后端服务"
+          D[Express Server] --> E[Gemini API Proxy]
+          D --> F[Usage Tracking]
+          D --> G[Admin API]
+      end
+
+      subgraph "Supabase 实例"
+          H[Authentication]
+          I[PostgreSQL]
+          J[Real-time API]
+          K[Row Level Security]
+      end
+
+      subgraph "管理后台"
+          L[Admin Dashboard]
+          L --> M[用户管理]
+          L --> N[统计报表]
+          L --> O[系统配置]
+      end
+
+      B --> H
+      B --> I
+      B --> J
+      C --> D
+      F --> I
+      G --> I
+      L --> B
+
+  2. Supabase 数据库表设计
+
+  -- 1. 用户配置表 (扩展 Supabase 的 auth.users)
+  CREATE TABLE user_profiles (
+      id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  -- 2. 使用统计表 (按日汇总)
+  CREATE TABLE usage_stats (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      date DATE NOT NULL,
+      token_consumed INTEGER DEFAULT 0,
+      request_count INTEGER DEFAULT 0,
+      generation_count INTEGER DEFAULT 0,
+      edit_count INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(user_id, date)
+  );
+
+  -- 3. 行为日志表
+  CREATE TABLE action_logs (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      details JSONB,
+      session_id TEXT,
+      ip_address INET,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  -- 4. 聊天历史表
+  CREATE TABLE chat_history (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      project_id TEXT, -- 对应前端的 Project.id
+      prompt TEXT NOT NULL,
+      response TEXT,
+      type TEXT NOT NULL CHECK (type IN ('generate', 'edit')),
+      metadata JSONB, -- 包含 token 使用量、参数等
+      created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  -- 5. 系统配置表 (管理员配置)
+  CREATE TABLE system_config (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      key TEXT UNIQUE NOT NULL,
+      value JSONB NOT NULL,
+      updated_by UUID REFERENCES auth.users(id),
+      updated_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  行级安全策略 (RLS)：
+  -- 启用 RLS
+  ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE usage_stats ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE action_logs ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
+
+  -- 用户只能访问自己的数据
+  CREATE POLICY "Users can view own profile" ON user_profiles
+      FOR ALL USING (auth.uid() = id);
+
+  CREATE POLICY "Users can view own usage stats" ON usage_stats
+      FOR ALL USING (auth.uid() = user_id);
+
+  CREATE POLICY "Users can view own chat history" ON chat_history
+      FOR ALL USING (auth.uid() = user_id);
+
+  -- 管理员可以访问所有数据
+  CREATE POLICY "Admins can view all data" ON user_profiles
+      FOR ALL USING (
+          EXISTS (
+              SELECT 1 FROM user_profiles
+              WHERE id = auth.uid() AND role = 'admin'
+          )
+      );
+
+  -- 类似的管理员策略应用到其他表...
+
+● 3. 前端最小化改动方案
+
+  3.1 配置系统
+
+  // src/config/app.ts
+  export interface AppConfig {
+    mode: 'standalone' | 'multi-user';
+    supabase?: {
+      url: string;
+      anonKey: string;
+    };
+    backend?: {
+      url: string;
+    };
+  }
+
+  export const appConfig: AppConfig = {
+    mode: (import.meta.env.VITE_APP_MODE as 'standalone' | 'multi-user') || 'standalone',
+    supabase: import.meta.env.VITE_APP_MODE === 'multi-user' ? {
+      url: import.meta.env.VITE_SUPABASE_URL!,
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+    } : undefined,
+    backend: import.meta.env.VITE_APP_MODE === 'multi-user' ? {
+      url: import.meta.env.VITE_BACKEND_URL!,
+    } : undefined,
+  };
+
+  3.2 服务适配器模式
+
+  // src/services/authService.ts
+  import { createClient } from '@supabase/supabase-js';
+  import { appConfig } from '../config/app';
+
+  class AuthService {
+    private supabase = appConfig.supabase ?
+      createClient(appConfig.supabase.url, appConfig.supabase.anonKey) : null;
+
+    async login(email: string, password: string) {
+      if (appConfig.mode === 'standalone') {
+        return { success: true, user: null }; // 单用户模式直接通过
+      }
+
+      const { data, error } = await this.supabase!.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      return { success: !error, user: data.user, error };
+    }
+
+    async getCurrentUser() {
+      if (appConfig.mode === 'standalone') {
+        return null;
+      }
+
+      const { data } = await this.supabase!.auth.getUser();
+      return data.user;
+    }
+
+    async logout() {
+      if (appConfig.mode === 'standalone') return;
+
+      await this.supabase!.auth.signOut();
+    }
+  }
+
+  export const authService = new AuthService();
+
+  // src/services/geminiService.ts 
+  import { appConfig } from '../config/app';
+  import { authService } from './authService';
+
+  export class GeminiService {
+    private async getApiEndpoint() {
+      if (appConfig.mode === 'standalone') {
+        // 直接调用 Gemini API
+        return 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+      } else {
+        // 通过后端代理
+        return `${appConfig.backend!.url}/api/gemini/generate`;
+      }
+    }
+
+    private async getHeaders() {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (appConfig.mode === 'standalone') {
+        headers['Authorization'] = `Bearer ${import.meta.env.VITE_GEMINI_API_KEY}`;
+      } else {
+        const user = await authService.getCurrentUser();
+        if (user) {
+          headers['Authorization'] = `Bearer ${user.access_token}`;
+        }
+      }
+
+      return headers;
+    }
+
+    async generateImage(request: GenerationRequest): Promise<string[]> {
+      const endpoint = await this.getApiEndpoint();
+      const headers = await this.getHeaders();
+
+      // 统一的请求逻辑，但会根据模式选择不同的端点和认证方式
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+      });
+
+      // ... 处理响应
+    }
+  }
+
+  3.3 UI 组件适配
+
+  // src/components/AuthWrapper.tsx
+  import { useEffect, useState } from 'react';
+  import { appConfig } from '../config/app';
+  import { authService } from '../services/authService';
+  import { LoginForm } from './LoginForm';
+
+  interface AuthWrapperProps {
+    children: React.ReactNode;
+  }
+
+  export function AuthWrapper({ children }: AuthWrapperProps) {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      if (appConfig.mode === 'standalone') {
+        setLoading(false);
+        return;
+      }
+
+      // 多用户模式下检查认证状态
+      authService.getCurrentUser().then(user => {
+        setUser(user);
+        setLoading(false);
+      });
+    }, []);
+
+    if (loading) {
+      return <div>加载中...</div>;
+    }
+
+    if (appConfig.mode === 'multi-user' && !user) {
+      return <LoginForm onLogin={setUser} />;
+    }
+
+    return <>{children}</>;
+  }
+
+  // src/components/Header.tsx (现有组件的微调)
+  import { appConfig } from '../config/app';
+  import { authService } from '../services/authService';
+
+  export function Header() {
+    // ... 现有逻辑
+
+    const showUserMenu = appConfig.mode === 'multi-user';
+
+    return (
+      <header className="...">
+        {/* 现有的工具栏按钮 */}
+
+        {showUserMenu && (
+          <div className="user-menu">
+            <UserAvatar />
+            <button onClick={() => authService.logout()}>
+              登出
+            </button>
+          </div>
+        )}
+      </header>
+    );
+  }
+
+● 4. 轻量级后端服务设计
+
+  4.1 技术栈和目录结构
+
+  backend/
+  ├── src/
+  │   ├── routes/
+  │   │   ├── gemini.ts       # Gemini API 代理
+  │   │   ├── admin.ts        # 管理员 API
+  │   │   └── health.ts       # 健康检查
+  │   ├── middleware/
+  │   │   ├── auth.ts         # Supabase JWT 验证
+  │   │   ├── logging.ts      # 请求日志和统计
+  │   │   └── cors.ts         # CORS 配置
+  │   ├── services/
+  │   │   ├── supabaseService.ts
+  │   │   ├── geminiService.ts
+  │   │   └── statsService.ts
+  │   ├── types/
+  │   │   └── index.ts
+  │   └── app.ts
+  ├── Dockerfile
+  ├── package.json
+  └── docker-compose.yml
+
+  4.2 核心服务实现
+
+  // src/services/supabaseService.ts
+  import { createClient } from '@supabase/supabase-js';
+
+  export class SupabaseService {
+    private supabase;
+
+    constructor() {
+      this.supabase = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!, // 使用 service role key
+      );
+    }
+
+    // 验证用户 JWT token
+    async verifyUser(token: string) {
+      const { data, error } = await this.supabase.auth.getUser(token);
+      return { user: data.user, error };
+    }
+
+    // 记录使用统计
+    async recordUsage(userId: string, action: 'generate' | 'edit', tokenUsed: number) {
+      const today = new Date().toISOString().split('T')[0];
+
+      await this.supabase.rpc('increment_usage_stats', {
+        p_user_id: userId,
+        p_date: today,
+        p_token_consumed: tokenUsed,
+        p_action_type: action
+      });
+    }
+
+    // 记录行为日志
+    async logAction(userId: string, action: string, details: any, sessionId?: string) {
+      await this.supabase
+        .from('action_logs')
+        .insert({
+          user_id: userId,
+          action,
+          details,
+          session_id: sessionId,
+        });
+    }
+
+    // 保存聊天历史
+    async saveChatHistory(userId: string, projectId: string, prompt: string, response: string, metadata: any) {
+      await this.supabase
+        .from('chat_history')
+        .insert({
+          user_id: userId,
+          project_id: projectId,
+          prompt,
+          response,
+          type: metadata.type,
+          metadata,
+        });
+    }
+  }
+
+  // src/routes/gemini.ts
+  import express from 'express';
+  import { authMiddleware } from '../middleware/auth';
+  import { GeminiService } from '../services/geminiService';
+  import { SupabaseService } from '../services/supabaseService';
+
+  const router = express.Router();
+  const geminiService = new GeminiService();
+  const supabaseService = new SupabaseService();
+
+  // Gemini API 代理端点
+  router.post('/generate', authMiddleware, async (req, res) => {
+    try {
+      const user = req.user; // 从 auth middleware 获取
+      const { prompt, parameters, projectId } = req.body;
+
+      // 调用 Gemini API
+      const result = await geminiService.generateImage({
+        prompt,
+        ...parameters,
+      });
+
+      // 估算 token 使用量 (这里可以根据实际情况调整)
+      const estimatedTokens = prompt.length * 0.75; // 简单估算
+
+      // 记录使用统计
+      await supabaseService.recordUsage(user.id, 'generate', estimatedTokens);
+
+      // 记录行为日志
+      await supabaseService.logAction(user.id, 'generate', {
+        prompt,
+        parameters,
+        result_count: result.length,
+      });
+
+      // 保存聊天历史
+      await supabaseService.saveChatHistory(user.id, projectId, prompt, '', {
+        type: 'generate',
+        tokenUsed: estimatedTokens,
+        parameters,
+        outputCount: result.length,
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Generate error:', error);
+      res.status(500).json({ success: false, error: 'Generation failed' });
+    }
+  });
+
+  // 类似的编辑端点
+  router.post('/edit', authMiddleware, async (req, res) => {
+    // 类似的实现...
+  });
+
+  export { router as geminiRouter };
+
+  // src/middleware/auth.ts
+  import { Request, Response, NextFunction } from 'express';
+  import { SupabaseService } from '../services/supabaseService';
+
+  const supabaseService = new SupabaseService();
+
+  export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const { user, error } = await supabaseService.verifyUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  }
+
+  4.3 管理员后台 API
+
+  // src/routes/admin.ts  
+  import express from 'express';
+  import { adminAuthMiddleware } from '../middleware/adminAuth';
+
+  const router = express.Router();
+
+  // 管理员登录
+  router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    // 使用 Supabase Admin Auth 验证管理员账户
+    // ...
+  });
+
+  // 获取所有用户
+  router.get('/users', adminAuthMiddleware, async (req, res) => {
+    // 获取用户列表和基本统计
+  });
+
+  // 创建用户
+  router.post('/users', adminAuthMiddleware, async (req, res) => {
+    const { email, password, username, role = 'user' } = req.body;
+    // 使用 Supabase Admin API 创建用户
+  });
+
+  // 获取使用统计
+  router.get('/stats', adminAuthMiddleware, async (req, res) => {
+    const { startDate, endDate, userId } = req.query;
+    // 查询使用统计数据
+  });
+
+  // 获取行为日志
+  router.get('/logs', adminAuthMiddleware, async (req, res) => {
+    const { page = 1, limit = 50, userId, action } = req.query;
+    // 分页查询行为日志
+  });
+
+  export { router as adminRouter };
+
+● 5. Docker 部署方案
+
+  5.1 完整的 Docker Compose 配置
+
+  # docker-compose.yml
+  version: '3.8'
+
+  services:
+    # 前端应用
+    frontend:
+      build:
+        context: ./
+        dockerfile: Dockerfile.frontend
+      ports:
+        - "3000:3000"
+      environment:
+        - VITE_APP_MODE=${APP_MODE:-standalone}
+        - VITE_SUPABASE_URL=${SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - VITE_BACKEND_URL=http://backend:3001
+        - VITE_GEMINI_API_KEY=${GEMINI_API_KEY}
+      depends_on:
+        - backend
+      networks:
+        - app-network
+
+    # 后端服务 (仅在多用户模式下启动)
+    backend:
+      build:
+        context: ./backend
+        dockerfile: Dockerfile
+      ports:
+        - "3001:3001"
+      environment:
+        - NODE_ENV=production
+        - PORT=3001
+        - SUPABASE_URL=${SUPABASE_URL}
+        - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+        - GEMINI_API_KEY=${GEMINI_API_KEY}
+        - CORS_ORIGIN=http://frontend:3000
+      profiles:
+        - multi-user  # 只在多用户模式下启动
+      networks:
+        - app-network
+
+    # 管理后台 (独立服务)
+    admin:
+      build:
+        context: ./admin
+        dockerfile: Dockerfile
+      ports:
+        - "3002:3000"
+      environment:
+        - REACT_APP_SUPABASE_URL=${SUPABASE_URL}
+        - REACT_APP_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - REACT_APP_BACKEND_URL=http://backend:3001
+      profiles:
+        - multi-user  # 只在多用户模式下启动
+      depends_on:
+        - backend
+      networks:
+        - app-network
+
+  networks:
+    app-network:
+      driver: bridge
+
+  volumes:
+    node_modules:
+
+  5.2 分离的 Dockerfile
+
+  # Dockerfile.frontend
+  FROM node:18-alpine as builder
+
+  WORKDIR /app
+
+  # 复制 package 文件
+  COPY package*.json ./
+  RUN npm ci
+
+  # 复制源代码
+  COPY . .
+
+  # 根据环境变量构建
+  ARG APP_MODE=standalone
+  ENV VITE_APP_MODE=$APP_MODE
+
+  RUN npm run build
+
+  # 生产镜像
+  FROM nginx:alpine
+  COPY --from=builder /app/dist /usr/share/nginx/html
+  COPY nginx.conf /etc/nginx/nginx.conf
+
+  EXPOSE 3000
+  CMD ["nginx", "-g", "daemon off;"]
+
+  # backend/Dockerfile
+  FROM node:18-alpine
+
+  WORKDIR /app
+
+  # 复制 package 文件
+  COPY package*.json ./
+  RUN npm ci --only=production
+
+  # 复制源代码
+  COPY src ./src
+  COPY tsconfig.json ./
+
+  # 构建 TypeScript
+  RUN npm run build
+
+  EXPOSE 3001
+
+  # 健康检查
+  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+  CMD ["node", "dist/app.js"]
+
+  5.3 环境配置文件
+
+  # .env.standalone (单用户模式)
+  APP_MODE=standalone
+  GEMINI_API_KEY=your_gemini_api_key_here
+
+  # .env.multi-user (多用户模式)
+  APP_MODE=multi-user
+  GEMINI_API_KEY=your_gemini_api_key_here
+  SUPABASE_URL=http://your-supabase-instance:8000
+  SUPABASE_ANON_KEY=your_supabase_anon_key
+  SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+  5.4 部署脚本
+
+  #!/bin/bash
+  # deploy.sh
+
+  # 检查模式参数
+  MODE=${1:-standalone}
+
+  if [ "$MODE" = "standalone" ]; then
+      echo "🍌 部署单用户模式..."
+      docker-compose --env-file .env.standalone up -d frontend
+      echo "✅ 单用户模式部署完成!"
+      echo "📱 前端访问地址: http://localhost:3000"
+
+  elif [ "$MODE" = "multi-user" ]; then
+      echo "🍌 部署多用户模式..."
+
+      # 检查 Supabase 连接
+      echo "🔍 检查 Supabase 连接..."
+      if ! curl -f "$SUPABASE_URL/health" > /dev/null 2>&1; then
+          echo "❌ 无法连接到 Supabase 实例，请检查配置"
+          exit 1
+      fi
+
+      # 启动所有服务
+      docker-compose --env-file .env.multi-user --profile multi-user up -d
+
+      echo "✅ 多用户模式部署完成!"
+      echo "📱 前端访问地址: http://localhost:3000"
+      echo "⚙️  管理后台地址: http://localhost:3002"
+      echo "🔧 后端 API 地址: http://localhost:3001"
+
+  else
+      echo "❌ 无效的部署模式: $MODE"
+      echo "使用方法: ./deploy.sh [standalone|multi-user]"
+      exit 1
+  fi
+
+  5.5 数据库初始化脚本
+
+  -- supabase/migrations/001_initial_setup.sql
+  -- 这个脚本会在首次部署时运行，创建所有必要的表和策略
+
+  -- 创建自定义函数用于统计更新
+  CREATE OR REPLACE FUNCTION increment_usage_stats(
+      p_user_id UUID,
+      p_date DATE,
+      p_token_consumed INTEGER DEFAULT 0,
+      p_action_type TEXT DEFAULT 'generate'
+  ) RETURNS VOID AS $$
+  BEGIN
+      INSERT INTO usage_stats (user_id, date, token_consumed, request_count, generation_count, edit_count)
+      VALUES (p_user_id, p_date, p_token_consumed, 1,
+              CASE WHEN p_action_type = 'generate' THEN 1 ELSE 0 END,
+              CASE WHEN p_action_type = 'edit' THEN 1 ELSE 0 END)
+      ON CONFLICT (user_id, date)
+      DO UPDATE SET
+          token_consumed = usage_stats.token_consumed + p_token_consumed,
+          request_count = usage_stats.request_count + 1,
+          generation_count = usage_stats.generation_count + (CASE WHEN p_action_type = 'generate' THEN 1 ELSE 0
+  END),
+          edit_count = usage_stats.edit_count + (CASE WHEN p_action_type = 'edit' THEN 1 ELSE 0 END);
+  END;
+  $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+● 6. 管理后台设计
+
+  6.1 管理后台功能规划
+
+  核心功能模块：
+
+  // 管理后台的主要页面
+  interface AdminRoutes {
+    '/login': '管理员登录';
+    '/dashboard': '总览仪表板';
+    '/users': '用户管理';
+    '/usage': '使用统计';
+    '/logs': '行为日志';
+    '/settings': '系统配置';
+  }
+
+  6.2 部署命令示例
+
+  # 单用户模式部署
+  ./deploy.sh standalone
+
+  # 多用户模式部署  
+  ./deploy.sh multi-user
+
+  # 查看运行状态
+  docker-compose ps
+
+  # 查看日志
+  docker-compose logs -f backend
+
+  总结
+
+  使用 Supabase 的主要优势：
+
+  1. 大幅简化架构 - 无需自建认证、数据库管理等复杂功能
+  2. 开发效率高 - 现成的 Auth、RLS、实时 API 等功能
+  3. 运维成本低 - 您已有 Supabase 实例，直接复用
+  4. 安全性强 - 行级安全策略，JWT 认证
+  5. 扩展性好 - PostgreSQL 支持复杂查询和统计
+
+  实施建议：
+
+  第一阶段 (1-2 周)：
+  - 设置 Supabase 数据库表和策略
+  - 实现前端的双模式配置系统
+  - 创建基础的后端代理服务
+
+  第二阶段 (1-2 周)：
+  - 完成使用统计和日志记录功能
+  - 实现管理后台的基础功能
+  - Docker 部署配置和测试
+
+  第三阶段 (1 周)：
+  - 完善管理后台界面和报表
+  - 性能优化和安全加固
+  - 文档和部署脚本完善
+
+  这个方案最大的优点是 渐进式和可配置，既保持了现有的简单部署方式，又为需要多用户管理的场景提供了完整的解决方案。您
+  觉得这个设计思路如何？有什么需要调整的地方吗？
+
+> @NanoBananaEditor\.env.example
+  @NanoBananaEditor\docs\cc-history\2025-09-08-添加企微通知功能.txt
+
+  这个项目当前有一个后端的简易 server，是图片服务器。
+
+  同时 docker compose 里面不要出现敏感环境变量，所有敏感信息都应该定义在 env 里
+
+● 我来先了解一下现有的后端服务和环境配置，然后基于您的要求调整设计方案。
+
+● Read(.env.example)
+  ⎿  Read 20 lines (ctrl+r to expand)
+
+● Read(docs\cc-history\2025-09-08-添加企微通知功能.txt)
+  ⎿  Read 1423 lines (ctrl+r to expand)
+
+● 现在我了解了项目现状。让我基于现有的图片服务器重新设计用户管理系统的集成方案。
+
+● 基于 Supabase + 现有图片服务器的用户管理系统设计
+
+  1. 优化后的架构设计
+
+  基于您现有的图片服务器和企微通知功能，我们可以这样设计：
+
+  graph TB
+      subgraph "前端应用"
+          A[React App] --> B[Supabase Client]
+          A --> C[现有图片服务器 :3002]
+      end
+
+      subgraph "扩展的图片服务器 (Express)"
+          D[图片存储] --> E[Gemini API 代理]
+          D --> F[用户认证中间件]
+          D --> G[使用统计记录]
+          D --> H[企微通知]
+      end
+
+      subgraph "Supabase 实例"
+          I[Authentication]
+          J[PostgreSQL]
+          K[Row Level Security]
+      end
+
+      subgraph "管理后台"
+          L[Admin Dashboard]
+      end
+
+      B --> I
+      B --> J
+      C --> D
+      F --> I
+      G --> J
+      L --> B
+
+  2. 环境配置整合
+
+  # .env.example (优化后的配置)
+
+  # === 基础配置 ===
+  VITE_APP_MODE=standalone # 或 multi-user
+
+  # === Gemini API 配置 ===
+  VITE_GEMINI_API_KEY=
+  VITE_OPENAI_API_KEY=
+  VITE_OPENAI_BASE_URL=https://api.openai.com/v1
+  VITE_OPENAI_MODEL=gpt-4o-mini
+
+  # === 图片服务器配置 ===
+  VITE_IMAGE_SERVER_URL=http://localhost:3002
+  IMAGE_SERVER_PORT=3002
+  IMAGE_SERVER_HOST=0.0.0.0
+
+  # === 企微通知配置 ===
+  VITE_WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
+  WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
+
+  # === 多用户模式配置 (仅在 multi-user 模式下使用) ===
+  VITE_SUPABASE_URL=
+  VITE_SUPABASE_ANON_KEY=
+  SUPABASE_URL=
+  SUPABASE_SERVICE_ROLE_KEY=
+
+  # === 管理后台配置 ===
+  ADMIN_PORT=3003
+  ADMIN_USERNAME=admin
+  ADMIN_PASSWORD_HASH=
+
+● 3. Docker Compose 配置方案
+
+  # docker-compose.yml
+  version: '3.8'
+
+  services:
+    # 前端应用
+    frontend:
+      build:
+        context: .
+        dockerfile: Dockerfile.frontend
+      ports:
+        - "${FRONTEND_PORT:-3000}:3000"
+      environment:
+        - NODE_ENV=production
+        - VITE_APP_MODE=${VITE_APP_MODE}
+        - VITE_IMAGE_SERVER_URL=http://backend:${IMAGE_SERVER_PORT:-3002}
+      depends_on:
+        - backend
+      networks:
+        - app-network
+      profiles:
+        - all
+        - standalone
+
+    # 后端服务 (扩展的图片服务器)
+    backend:
+      build:
+        context: .
+        dockerfile: Dockerfile.backend
+      ports:
+        - "${IMAGE_SERVER_PORT:-3002}:3002"
+      environment:
+        - NODE_ENV=production
+        - IMAGE_SERVER_PORT=${IMAGE_SERVER_PORT:-3002}
+        - IMAGE_SERVER_HOST=0.0.0.0
+        - APP_MODE=${VITE_APP_MODE}
+      env_file:
+        - .env
+      volumes:
+        - ./generated_images:/app/generated_images
+        - ./logs:/app/logs
+      networks:
+        - app-network
+      profiles:
+        - all
+        - standalone
+
+    # 管理后台 (仅多用户模式)
+    admin:
+      build:
+        context: ./admin
+        dockerfile: Dockerfile
+      ports:
+        - "${ADMIN_PORT:-3003}:3000"
+      environment:
+        - NODE_ENV=production
+      env_file:
+        - .env
+      depends_on:
+        - backend
+      networks:
+        - app-network
+      profiles:
+        - multi-user
+
+  networks:
+    app-network:
+      driver: bridge
+
+  volumes:
+    generated_images:
+    logs:
+
+  4. Dockerfile 配置
+
+  # Dockerfile.frontend
+  FROM node:18-alpine as builder
+
+  WORKDIR /app
+
+  # 复制 package 文件
+  COPY package*.json ./
+  RUN npm ci
+
+  # 复制源代码
+  COPY . .
+
+  # 根据环境变量构建
+  RUN npm run build
+
+  # 生产镜像
+  FROM nginx:alpine
+
+  COPY --from=builder /app/dist /usr/share/nginx/html
+
+  # Nginx 配置
+  COPY nginx.conf /etc/nginx/nginx.conf
+
+  EXPOSE 3000
+
+  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+  CMD ["nginx", "-g", "daemon off;"]
+
+  # Dockerfile.backend
+  FROM node:18-alpine
+
+  WORKDIR /app
+
+  # 创建必要目录
+  RUN mkdir -p generated_images logs
+
+  # 复制 package 文件
+  COPY package*.json ./
+  RUN npm ci --only=production
+
+  # 复制服务器代码
+  COPY server/ ./server/
+  COPY .env* ./
+
+  # 创建非 root 用户
+  RUN addgroup -g 1001 -S appuser && \
+      adduser -S appuser -u 1001 -G appuser
+
+  # 设置权限
+  RUN chown -R appuser:appuser /app
+
+  USER appuser
+
+  EXPOSE 3002
+
+  # 健康检查
+  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3002/health || exit 1
+
+  CMD ["node", "server/imageServer.cjs"]
+
+● 5. 现有图片服务器扩展方案
+
+  需要将现有的 server/imageServer.cjs 扩展为支持多用户的服务：
+
+  // server/imageServer.cjs (扩展后的版本)
+
+  /**
+   * 多功能图片服务器
+   * 支持图片存储、Gemini API 代理、用户认证、使用统计
+   */
+  const express = require('express');
+  const cors = require('cors');
+  const path = require('path');
+  const fs = require('fs').promises;
+  const crypto = require('crypto');
+
+  // 加载环境变量
+  require('dotenv').config();
+
+  const app = express();
+  const PORT = process.env.IMAGE_SERVER_PORT || 3002;
+  const HOST = process.env.IMAGE_SERVER_HOST || '0.0.0.0';
+  const APP_MODE = process.env.VITE_APP_MODE || process.env.APP_MODE || 'standalone';
+
+  // 中间件配置
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+
+  // 路由模块
+  const imageRoutes = require('./routes/images');
+  const authRoutes = require('./routes/auth');
+  const geminiRoutes = require('./routes/gemini');
+  const statsRoutes = require('./routes/stats');
+
+  // 现有的图片服务路由
+  app.use('/images', express.static('generated_images'));
+  app.use('/api/images', imageRoutes);
+
+  // 多用户模式下的额外路由
+  if (APP_MODE === 'multi-user') {
+    app.use('/api/auth', authRoutes);
+    app.use('/api/gemini', geminiRoutes);
+    app.use('/api/stats', statsRoutes);
+  }
+
+  // 健康检查
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      mode: APP_MODE,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      features: {
+        images: true,
+        auth: APP_MODE === 'multi-user',
+        gemini: APP_MODE === 'multi-user',
+        stats: APP_MODE === 'multi-user'
+      }
+    });
+  });
+
+  // 启动服务器
+  async function startServer() {
+    try {
+      await ensureDirectoriesExist();
+
+      app.listen(PORT, HOST, () => {
+        console.log(`🍌 Nano Banana 图片服务器启动成功!`);
+        console.log(`📡 服务地址: http://${HOST}:${PORT}`);
+        console.log(`🔧 运行模式: ${APP_MODE}`);
+        console.log(`📁 图片目录: ${path.resolve('generated_images')}`);
+
+        if (APP_MODE === 'multi-user') {
+          console.log(`🔐 多用户模式已启用`);
+          console.log(`📊 统计功能已启用`);
+          console.log(`🤖 Gemini 代理已启用`);
+        }
+      });
+    } catch (error) {
+      console.error('❌ 服务器启动失败:', error);
+      process.exit(1);
+    }
+  }
+
+  async function ensureDirectoriesExist() {
+    const dirs = ['generated_images', 'logs'];
+    for (const dir of dirs) {
+      try {
+        await fs.access(dir);
+      } catch {
+        await fs.mkdir(dir, { recursive: true });
+        console.log(`📁 创建目录: ${dir}`);
+      }
+    }
+  }
+
+  // 直接启动服务器
+  startServer();
+
+  6. 路由模块示例
+
+  // server/routes/gemini.js - Gemini API 代理路由
+  const express = require('express');
+  const { createClient } = require('@supabase/supabase-js');
+  const router = express.Router();
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+  // 认证中间件
+  async function authMiddleware(req, res, next) {
+    if (process.env.APP_MODE === 'standalone') {
+      req.user = { id: 'standalone', email: 'standalone@local' };
+      return next();
+    }
+
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      req.user = user;
+      next();
+    } catch (error) {
+      res.status(500).json({ error: 'Auth verification failed' });
+    }
+  }
+
+  // Gemini 生成代理
+  router.post('/generate', authMiddleware, async (req, res) => {
+    try {
+      const { prompt, parameters } = req.body;
+      const userId = req.user.id;
+
+      // 调用 Gemini API (这里需要集成实际的 Gemini 调用逻辑)
+      const result = await callGeminiAPI({ prompt, ...parameters });
+
+      // 记录使用统计
+      if (supabase && process.env.APP_MODE === 'multi-user') {
+        await recordUsage(userId, 'generate', estimateTokens(prompt));
+        await logAction(userId, 'generate', { prompt, parameters });
+      }
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ error: 'Generation failed' });
+    }
+  });
+
+  module.exports = router;
+
+● 7. 部署脚本
+
+  #!/bin/bash
+  # deploy.sh
+
+  set -e
+
+  MODE=${1:-standalone}
+  COMPOSE_FILE="docker-compose.yml"
+
+  echo "🍌 部署 Nano Banana AI Image Editor - $MODE 模式"
+
+  # 检查环境文件
+  if [ ! -f ".env" ]; then
+      echo "⚠️  .env 文件不存在，从 .env.example 复制..."
+      cp .env.example .env
+      echo "📝 请编辑 .env 文件填入必要的配置"
+  fi
+
+  # 根据模式设置环境变量
+  export VITE_APP_MODE=$MODE
+
+  case $MODE in
+      "standalone")
+          echo "🔧 启动单用户模式..."
+          docker-compose --profile standalone up -d --build
+          echo "✅ 单用户模式部署完成!"
+          echo "📱 前端地址: http://localhost:3000"
+          echo "🖼️  图片服务: http://localhost:3002"
+          ;;
+
+      "multi-user")
+          echo "🔧 启动多用户模式..."
+
+          # 检查 Supabase 配置
+          if [ -z "$SUPABASE_URL" ]; then
+              echo "❌ 多用户模式需要配置 SUPABASE_URL"
+              exit 1
+          fi
+
+          # 测试 Supabase 连接
+          echo "🔍 检查 Supabase 连接..."
+          if ! curl -f "$SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_ANON_KEY" > /dev/null 2>&1; then
+              echo "❌ 无法连接到 Supabase，请检查配置"
+              exit 1
+          fi
+
+          docker-compose --profile multi-user up -d --build
+          echo "✅ 多用户模式部署完成!"
+          echo "📱 前端地址: http://localhost:3000"
+          echo "🖼️  图片服务: http://localhost:3002"
+          echo "⚙️  管理后台: http://localhost:3003"
+          ;;
+
+      "dev")
+          echo "🔧 启动开发模式..."
+          npm run dev:full
+          ;;
+
+      *)
+          echo "❌ 无效的部署模式: $MODE"
+          echo "使用方法: ./deploy.sh [standalone|multi-user|dev]"
+          exit 1
+          ;;
+  esac
+
+  echo ""
+  echo "🚀 部署完成！"
+  echo "📋 查看运行状态: docker-compose ps"
+  echo "📄 查看日志: docker-compose logs -f"
+  echo "🛑 停止服务: docker-compose down"
+
+  8. 管理后台创建
+
+  // admin/src/App.js - 简单的管理后台
+  import React, { useState, useEffect } from 'react';
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabase = createClient(
+    process.env.REACT_APP_SUPABASE_URL,
+    process.env.REACT_APP_SUPABASE_ANON_KEY
+  );
+
+  function App() {
+    const [users, setUsers] = useState([]);
+    const [stats, setStats] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      loadData();
+    }, []);
+
+    async function loadData() {
+      try {
+        // 加载用户列表
+        const { data: usersData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // 加载使用统计
+        const { data: statsData } = await supabase
+          .from('usage_stats')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(100);
+
+        setUsers(usersData || []);
+        setStats(statsData || []);
+      } catch (error) {
+        console.error('加载数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (loading) return <div>加载中...</div>;
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <h1>🍌 Nano Banana 管理后台</h1>
+
+        <section>
+          <h2>👥 用户管理</h2>
+          <table border="1" style={{ width: '100%', marginBottom: '20px' }}>
+            <thead>
+              <tr>
+                <th>用户名</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>创建时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td>{user.username}</td>
+                  <td>{user.role}</td>
+                  <td>{user.status}</td>
+                  <td>{new Date(user.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>📊 使用统计</h2>
+          <table border="1" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>Token 消耗</th>
+                <th>请求次数</th>
+                <th>生成次数</th>
+                <th>编辑次数</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map(stat => (
+                <tr key={stat.id}>
+                  <td>{stat.date}</td>
+                  <td>{stat.token_consumed}</td>
+                  <td>{stat.request_count}</td>
+                  <td>{stat.generation_count}</td>
+                  <td>{stat.edit_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </div>
+    );
+  }
+
+  export default App;
+
+  总结
+
+  基于现有架构的优化方案
+
+  主要优势:
+  1. 最小化改动 - 基于现有的图片服务器扩展，保留企微通知功能
+  2. 配置驱动 - 通过环境变量控制单用户/多用户模式
+  3. Docker 友好 - 敏感信息全部通过环境变量配置
+  4. 渐进式部署 - 支持开发、单用户、多用户三种部署模式
+
+  核心特点:
+  - ✅ 保留现有图片服务器和企微通知功能
+  - ✅ Supabase 提供完整的用户管理和数据库功能
+  - ✅ Docker Compose 支持多种部署profile
+  - ✅ 敏感信息全部在 .env 中配置
+  - ✅ 独立的管理后台
+  - ✅ 完整的统计和日志功能
+
+  部署方式:
+  # 开发环境
+  ./deploy.sh dev
+
+  # 单用户生产环境
+  ./deploy.sh standalone
+
+  # 多用户生产环境 (需先配置Supabase)
+  ./deploy.sh multi-user
+
+  这个方案既保持了现有功能的完整性，又为多用户场景提供了完整的解决方案。您觉得这个设计如何？
+
+> 可以，请开始实现。
+
+● 好的！我开始实现基于 Supabase + 现有图片服务器的用户管理系统。
+
+● 1. 更新环境配置文件
+
+● Update(.env.example)
+  ⎿  Updated .env.example with 26 additions and 6 removals                                                    
+        1 -  # Gemini API Configuration
+        1 +  # === 应用模式配置 ===
+        2 +  VITE_APP_MODE=standalone
+        3 +  # 可选值: standalone (单用户模式) 或 multi-user (多用户模式)
+        4 +  
+        5 +  # === Gemini API 配置 ===
+        6    VITE_GEMINI_API_KEY=
+        7 +  GEMINI_API_KEY=
+        8    
+        9 -  # OpenAI API Configuration (用于 Prompt 优化和文本 AI 处理任务)
+        9 +  # === OpenAI API 配置 (用于 Prompt 优化和文本 AI 处理任务) ===
+       10    VITE_OPENAI_API_KEY=
+       11    VITE_OPENAI_BASE_URL=https://api.openai.com/v1
+       12    VITE_OPENAI_MODEL=gpt-4o-mini
+       13    
+       14 -  # Image Server Configuration
+       14 +  # === 图片服务器配置 ===
+       15    VITE_IMAGE_SERVER_URL=http://localhost:3002
+       16    IMAGE_SERVER_PORT=3002
+       17    IMAGE_SERVER_HOST=0.0.0.0
+       18    
+       19 -  # WeChat Work Notification Configuration
+       19 +  # === 企微通知配置 ===
+       20    VITE_WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WEBHOOK_KEY_HERE
+       21    WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WEBHOOK_KEY_HERE
+       22    
+       23 -  # Note: In production, API calls should go through a backend proxy
+       24 -  # This is for development and demonstration purposes only
+       23 +  # === 多用户模式配置 (仅在 VITE_APP_MODE=multi-user 时使用) ===
+       24 +  VITE_SUPABASE_URL=
+       25 +  VITE_SUPABASE_ANON_KEY=
+       26 +  SUPABASE_URL=
+       27 +  SUPABASE_SERVICE_ROLE_KEY=
+       28 +  
+       29 +  # === Docker 部署配置 ===
+       30 +  FRONTEND_PORT=3000
+       31 +  ADMIN_PORT=3003
+       32 +  CORS_ORIGIN=http://localhost:3000
+       33 +  
+       34 +  # === 管理员配置 ===
+       35 +  ADMIN_USERNAME=admin
+       36 +  ADMIN_PASSWORD_HASH=$2b$10$example_hash_here
+       37 +  
+       38 +  # 注意: 生产环境中，API 调用应通过后端代理进行
+       39 +  # 此配置仅用于开发和演示目的
+
+● 2. 扩展现有图片服务器支持多用户
+
+  首先添加必需的依赖：
+
+● Update(package.json)
+  ⎿  Error editing file
+
+● Read(package.json)
+  ⎿  Read 64 lines (ctrl+r to expand)
+
+● Update(package.json)
+  ⎿  Updated package.json with 3 additions                    
+       27        "cors": "^2.8.5",
+       28        "dotenv": "^16.6.1",
+       29        "express": "^4.18.2",
+       30 +      "@supabase/supabase-js": "^2.39.3",
+       31 +      "bcryptjs": "^2.4.3",
+       32 +      "jsonwebtoken": "^9.0.2",
+       33        "fabric": "^6.7.1",
+       34        "i18next": "^25.5.2",
+       35        "i18next-browser-languagedetector": "^8.2.0",
+
+● 添加类型定义：
+
+● Update(package.json)
+  ⎿  Updated package.json with 2 additions        
+       48        "@types/cors": "^2.8.17",
+       49        "@types/express": "^4.17.21",
+       50        "@types/node": "^20.12.7",
+       51 +      "@types/bcryptjs": "^2.4.6",
+       52 +      "@types/jsonwebtoken": "^9.0.5",
+       53        "@types/react": "^18.3.5",
+       54        "@types/react-dom": "^18.3.0",
+       55        "@vitejs/plugin-react": "^4.3.1",
+
+● 现在创建服务器路由目录结构：
+
+● Bash(mkdir -p server/routes server/middleware server/services server/utils)
+  ⎿  (No content)
+
+● 创建 Supabase 服务：
+
+● Write(server\services\supabaseService.cjs)
+  ⎿  Wrote 1 lines to server\services\supabaseService.cjs      
+     /**
+      * Supabase 服务
+      * 负责用户管理、统计记录和数据库操作
+      */
+     const { createClient } = require('@supabase/supabase-js');
+     class SupabaseService {
+       constructor() {
+         this.supabase = null;
+         this.initialized = false;
+
+● 创建认证中间件：
+
+● Write(server\middleware\auth.cjs)
+  ⎿  Wrote 1 lines to server\middleware\auth.cjs                        
+     /**
+      * 认证中间件
+      * 负责验证用户身份和权限
+      */
+     const supabaseService = require('../services/supabaseService.cjs');
+     /**
+      * 用户认证中间件
+      */
+     async function authMiddleware(req, res, next) {
+
+● 创建 Gemini API 代理路由：
+
+● Write(server\routes\gemini.cjs)
+  ⎿  Wrote 1 lines to server\routes\gemini.cjs                          
+     /**
+      * Gemini API 代理路由
+      * 负责转发 Gemini API 请求并记录使用统计
+      */
+     const express = require('express');
+     const { authMiddleware } = require('../middleware/auth.cjs');
+     const supabaseService = require('../services/supabaseService.cjs');
+     const router = express.Router();
+     /**
+
+● 创建管理员路由：
+
+● Write(server\routes\admin.cjs)
+  ⎿  Wrote 1 lines to server\routes\admin.cjs                           
+     /**
+      * 管理员路由
+      * 负责用户管理和系统统计
+      */
+     const express = require('express');
+     const { adminMiddleware } = require('../middleware/auth.cjs');
+     const supabaseService = require('../services/supabaseService.cjs');
+     const router = express.Router();
+     /**
+
+● 现在扩展现有的图片服务器：
+
+● Read(server\imageServer.cjs)
+  ⎿  Read 454 lines (ctrl+r to expand)
+
+● 现在我需要扩展现有的图片服务器来支持多用户功能。我将创建一个新的扩展版本：
+
+● Write(server\imageServerExtended.cjs)
+  ⎿  Wrote 1 lines to server\imageServerExtended.cjs                  
+     /**
+      * 扩展的图片HTTP服务器
+      * 支持图片存储、用户认证、Gemini API代理、使用统计和企业微信通知
+      */
+     const express = require('express');
+     const cors = require('cors');
+     const path = require('path');
+     const fs = require('fs').promises;
+     const crypto = require('crypto');
+
+● 更新 package.json 脚本使用扩展版服务器：
+
+● Update(package.json)
+  ⎿  Updated package.json with 4 additions and 3 removals                                                     
+        4      "version": "0.0.0",
+        5      "type": "module",
+        6      "scripts": {
+        7 -      "dev": "concurrently --kill-others-on-fail --prefix \"[{name}]\" --prefix-colors 
+          -  \"cyan,magenta\" --names \"vite,image-server\" \"vite\" \"node server/imageServer.cjs\"",
+        7 +      "dev": "concurrently --kill-others-on-fail --prefix \"[{name}]\" --prefix-colors 
+          +  \"cyan,magenta\" --names \"vite,image-server\" \"vite\" \"node server/imageServerExtended.cjs\"",
+        8        "dev:vite-only": "vite",
+        9 +      "dev:server-only": "node server/imageServerExtended.cjs",
+       10        "build": "vite build",
+       11        "lint": "eslint .",
+       12        "preview": "vite preview",
+       13 -      "image-server": "node server/imageServer.cjs",
+       14 -      "start:server": "node server/imageServer.cjs",
+       13 +      "image-server": "node server/imageServerExtended.cjs",
+       14 +      "start:server": "node server/imageServerExtended.cjs",
+       15        "test:notification": "node tests/test-notification.cjs",
+       16        "test:notification:cleanup": "node tests/test-notification.cjs --cleanup",
+       17        "test:real-image": "node tests/test-real-image.cjs"
+
+● 3. 创建 Supabase 数据库表和 RLS 策略
+
+● Bash(mkdir -p supabase/migrations)
+  ⎿  (No content)
+
+● Write(supabase\migrations\001_initial_setup.sql)
+  ⎿  Wrote 1 lines to supabase\migrations\001_initial_setup.sql                
+     -- =====================================================
+     -- Nano Banana AI Image Editor - 用户管理系统数据库初始化
+     -- =====================================================
+     -- 1. 用户配置表 (扩展 Supabase 的 auth.users)
+     CREATE TABLE IF NOT EXISTS user_profiles (
+         id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+         username TEXT UNIQUE NOT NULL,
+         role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+         status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+
+● 创建数据库初始化说明文档：
+
+● Write(supabase\README.md)
+  ⎿  Wrote 1 lines to supabase\README.md                                                         
+     # 🍌 Nano Banana - Supabase 数据库配置
+     ## 数据库初始化
+     ### 1. 自动初始化（推荐）
+     如果你的 Supabase 项目支持自动运行迁移，将 `migrations` 文件夹上传到你的 Supabase 项目即可。
+     ### 2. 手动初始化
+
+● 4. 修改前端服务适配器支持双模式
+
+  首先创建应用配置服务：
+
+● Write(src\config\app.ts)
+  ⎿  Wrote 1 lines to src\config\app.ts                
+     /**
+      * 应用配置管理
+      * 支持单用户和多用户模式的配置切换
+      */
+     export type AppMode = 'standalone' | 'multi-user';
+     export interface AppConfig {
+       mode: AppMode;
+       supabase?: {
+
+● 创建认证服务适配器：
+
+● Write(src\services\authService.ts)
+  ⎿  Wrote 1 lines to src\services\authService.ts                                  
+     /**
+      * 认证服务适配器
+      * 支持单用户和多用户模式的认证
+      */
+     import { createClient, type User, type Session } from '@supabase/supabase-js';
+     import { appConfig, isMultiUserMode } from '../config/app';
+     export interface AuthUser {
+       id: string;
+       email: string;
+
+● 修改现有的 Gemini 服务支持双模式：
+
+● Read(src\services\geminiService.ts)
+  ⎿  Read 169 lines (ctrl+r to expand)
+
+● 创建扩展的 Gemini 服务支持双模式：
+
+● Write(src\services\geminiServiceExtended.ts)
+  ⎿  Wrote 1 lines to src\services\geminiServiceExtended.ts                    
+     /**
+      * 扩展的 Gemini 服务
+      * 支持单用户和多用户模式，包含使用统计和通知功能
+      */
+     import { GoogleGenAI } from '@google/genai';
+     import { appConfig, getBackendUrl, isMultiUserMode } from '../config/app';
+     import { authService } from './authService';
+     export interface GenerationRequest {
+       prompt: string;
+
+● 扩展现有的图片服务器服务：
+
+● Read(src\services\imageServerService.ts)
+  ⎿  Read 276 lines (ctrl+r to expand)
+
+● 扩展图片服务器服务支持认证：
+
+● Write(src\services\imageServerServiceExtended.ts)
+  ⎿  Wrote 1 lines to src\services\imageServerServiceExtended.ts    
+     /**
+      * 扩展的图片服务器前端接口服务
+      * 支持用户认证和多用户模式
+      */
+     import { getBackendUrl, isMultiUserMode } from '../config/app';
+     import { authService } from './authService';
+     export interface SavedImage {
+       id: string;
+       fileName: string;
+
+● 创建集成的生成服务（包含通知功能）：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Error editing file
+
+● Read(src\services\integratedGenerationService.ts)
+  ⎿  Read 329 lines (ctrl+r to expand)
+
+● 现在更新集成生成服务来支持双模式：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 4 additions and 2 removals             
+        1    /**
+        2     * 集成的图片生成服务
+        3     * 整合 Gemini 生成、图片保存、设备识别和企业微信通知功能
+        4 +   * 支持单用户和多用户模式
+        5     */
+        6    
+        7 -  import { GeminiService, GenerationRequest, EditRequest } from './geminiService';
+        7 +  import { geminiServiceExtended, type GenerationRequest, type EditRequest } from 
+          + './geminiServiceExtended';
+        8    import { deviceService, DeviceInfo } from './deviceService';
+        9 -  import { imageServerService, SavedImage } from './imageServerService';
+        9 +  import { imageServerServiceExtended, SavedImage } from './imageServerServiceExtended';
+       10    import { notificationService, GenerationNotificationData } from './notificationService';
+       11 +  import { isFeatureEnabled } from '../config/app';
+       12    
+       13    export interface IntegratedGenerationRequest extends GenerationRequest {
+       14      enableNotification?: boolean;
+
+● 继续更新集成生成服务的实现：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 6 additions            
+       13    export interface IntegratedGenerationRequest extends GenerationRequest {
+       14      enableNotification?: boolean;
+       15      notificationTitle?: string;
+       16 +    projectId?: string;
+       17    }
+       18    
+       19    export interface IntegratedEditRequest extends EditRequest {
+       20      enableNotification?: boolean;
+       21      notificationTitle?: string;
+       22 +    projectId?: string;
+       23    }
+       24    
+       25    export interface GenerationResult {
+     ...
+       26      processingTime: number;
+       27      timestamp: number;
+       28      notificationSent: boolean;
+       29 +    metadata?: {
+       30 +      tokenUsed: number;
+       31 +      modelVersion: string;
+       32 +    };
+       33    }
+       34    
+       35    /**
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 1 addition and 3 removals
+       38     * 集成生成服务类
+       39     */
+       40    class IntegratedGenerationService {
+       41 -    private geminiService: GeminiService;
+       42 -  
+       41      constructor() {
+       42 -      this.geminiService = new GeminiService();
+       42 +      // 使用扩展的服务，支持双模式
+       43      }
+       44    
+       45      /**
+
+● 现在更新生成图片的方法：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 8 additions and 7 removals      
+       57          const deviceInfo = await deviceService.getDeviceInfo();
+       58          console.log(`✅ 设备信息: ${deviceInfo.localIP} (${deviceInfo.deviceId})`);
+       59    
+       60 -        // 2. 调用 Gemini 生成图片
+       60 +        // 2. 调用扩展的 Gemini 服务生成图片
+       61          console.log('🤖 调用 AI 模型生成图片...');
+       62 -        const base64Images = await this.geminiService.generateImage({
+       62 +        const result = await geminiServiceExtended.generateImage({
+       63            prompt: request.prompt,
+       64            referenceImages: request.referenceImages,
+       65            temperature: request.temperature,
+       66 -          seed: request.seed
+       66 +          seed: request.seed,
+       67 +          projectId: request.projectId
+       68          });
+       69 -        console.log(`✅ AI 生成完成，获得 ${base64Images.length} 张图片`);
+       69 +        console.log(`✅ AI 生成完成，获得 ${result.images.length} 张图片`);
+       70    
+       71          // 3. 保存图片到HTTP服务器
+       72          console.log('💾 保存图片到服务器...');
+       73 -        const imageData = base64Images.map((base64, index) => ({
+       74 -          data: `data:image/png;base64,${base64}`,
+       73 +        const imageData = result.images.map((img, index) => ({
+       74 +          data: img.startsWith('data:') ? img : `data:image/png;base64,${img}`,
+       75            name: `generated_${timestamp}_${index + 1}.png`
+       76          }));
+       77    
+       78 -        const savedImages = await imageServerService.saveImages(imageData);
+       78 +        const savedImages = await imageServerServiceExtended.saveImages(imageData);
+       79          console.log(`✅ 成功保存 ${savedImages.length} 张图片到服务器`);
+       80    
+       81          const processingTime = Date.now() - startTime;
+
+● 继续更新通知部分：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 4 additions and 4 removals            
+       82    
+       83          // 4. 发送企业微信通知 (如果启用)
+       84          let notificationSent = false;
+       85 -        if (request.enableNotification !== false && notificationService.isConfigured()) {
+       85 +        if (request.enableNotification !== false && isFeatureEnabled('notifications')) {
+       86            try {
+       87              console.log('📢 发送企业微信通知...');
+       88              
+       89 -            const notificationData: GenerationNotificationData = {
+       89 +            const notificationData = {
+       90                deviceInfo,
+       91                prompt: request.prompt,
+       92                parameters: {
+     ...
+        96                },
+        97                images: savedImages,
+        98                processingTime,
+        99 -              timestamp
+        99 +              timestamp: new Date().toISOString()
+       100              };
+       101    
+       102 -            await notificationService.notifyImageGeneration(notificationData);
+       102 +            await imageServerServiceExtended.sendWecomNotification(notificationData);
+       103              notificationSent = true;
+       104              console.log('✅ 企业微信通知发送成功');
+       105            } catch (error) {
+
+● 更新返回结果：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Error editing file
+
+● 让我找到正确的返回语句位置并更新：
+
+● Update(src\services\integratedGenerationService.ts)
+  ⎿  Updated src\services\integratedGenerationService.ts with 5 additions and 1 removal             
+       116            deviceInfo,
+       117            processingTime,
+       118            timestamp,
+       119 -          notificationSent
+       119 +          notificationSent,
+       120 +          metadata: {
+       121 +            tokenUsed: result.metadata.tokenUsed || this.estimateTokens(request.prompt),
+       122 +            modelVersion: 'Gemini 2.5 Flash Image'
+       123 +          }
+       124          };
+       125    
+       126        } catch (error) {
+
+● 我来创建一个新的完整的集成服务，避免复杂的多次编辑：
+
+● Write(src\services\integratedGenerationServiceExtended.ts)
+  ⎿  Wrote 1 lines to src\services\integratedGenerationServiceExtended.ts                                      
+     /**
+      * 扩展的集成图片生成服务
+      * 整合 Gemini 生成、图片保存、设备识别和企业微信通知功能
+      * 支持单用户和多用户模式
+      */
+     import { geminiServiceExtended, type GenerationRequest, type EditRequest } from './geminiServiceExtended';
+     import { deviceService, DeviceInfo } from './deviceService';
+     import { imageServerServiceExtended, SavedImage } from './imageServerServiceExtended';
+     import { isFeatureEnabled } from '../config/app';
+
+● 5. 创建 Docker 部署配置
+
+● Write(docker-compose.yml)
+  ⎿  Wrote 1 lines to docker-compose.yml                
+     # Nano Banana AI Image Editor - Docker Compose 配置
+     # 支持单用户和多用户模式的灵活部署
+     version: '3.8'
+     services:
+       # 前端应用
+       frontend:
+         build:
+           context: .
+
+● 创建前端 Dockerfile：
+
+● Write(Dockerfile.frontend)
+  ⎿  Wrote 1 lines to Dockerfile.frontend           
+     # Nano Banana AI Image Editor - 前端 Dockerfile
+     # 多阶段构建，支持不同的应用模式
+     # 构建阶段
+     FROM node:18-alpine as builder
+     # 设置工作目录
+     WORKDIR /app
+     # 接收构建参数
+
+● 创建后端 Dockerfile：
+
+● Write(Dockerfile.backend)
+  ⎿  Wrote 1 lines to Dockerfile.backend            
+     # Nano Banana AI Image Editor - 后端 Dockerfile
+     # Node.js 图片服务器 + API
+     FROM node:18-alpine
+     # 安装系统依赖
+     RUN apk add --no-cache \
+         curl \
+         dumb-init
+

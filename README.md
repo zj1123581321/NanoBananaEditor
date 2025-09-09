@@ -1,226 +1,292 @@
-# 🍌 Nano Banana AI Image Editor 
-Release Version: (v1.0)
+# 🍌 Nano Banana AI Image Editor
 
-### **⏬ Get Your 1-Click Install Copy!** 
-Join the [Vibe Coding is Life Skool Community](https://www.skool.com/vibe-coding-is-life/about?ref=456537abaf37491cbcc6976f3c26af41) and get a **1-click ⚡Bolt.new installation clone**  of this app, plus access to live build sessions, exclusive project downloads, AI prompts, masterclasses, and the best vibe coding community on the web!
+一个基于 Gemini AI 的图片生成和编辑工具，支持单用户和多用户模式。
+
+## ✨ 主要特性
+
+- 🎨 **AI 图片生成** - 基于 Google Gemini 2.5 Flash Image 模型
+- ✏️ **图片编辑** - 支持图片修改和优化
+- 👥 **双模式运行** - 支持单用户和多用户模式
+- 📊 **使用统计** - 详细的 Token 使用和操作统计
+- 💬 **企业微信通知** - 支持生成结果推送
+- 🔐 **用户管理** - 管理员创建账户，无自助注册
+- 📱 **响应式设计** - 支持桌面和移动设备
+- 🐳 **Docker 部署** - 一键部署，开箱即用
+
+## 🏗️ 系统架构
+
+```mermaid
+graph TB
+    subgraph "前端层"
+        A[React + TypeScript]
+        B[管理后台 Vue 3]
+    end
+    
+    subgraph "后端层"
+        C[Node.js API Server]
+        D[图片服务器]
+    end
+    
+    subgraph "数据层"
+        E[Supabase 数据库]
+        F[文件存储]
+    end
+    
+    subgraph "外部服务"
+        G[Google Gemini API]
+        H[企业微信]
+    end
+    
+    A --> C
+    B --> C
+    C --> E
+    C --> F
+    C --> G
+    C --> H
+    D --> F
+```
+
+## 🚀 快速开始
+
+### 先决条件
+
+- Docker 和 Docker Compose
+- Node.js 18+ (可选，用于本地开发)
+- Supabase 实例 (多用户模式需要)
+
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd NanoBananaEditor
+```
+
+### 2. 初始化配置
+
+```bash
+# 运行初始化脚本
+./scripts/setup.sh
+
+# 或手动配置
+cp .env.example .env
+# 编辑 .env 文件，设置必要的配置
+```
+
+### 3. 部署应用
+
+#### 单用户模式 (推荐新用户)
+
+```bash
+./deploy.sh standalone
+```
+
+#### 多用户模式
+
+```bash
+# 确保已配置 Supabase
+./deploy.sh multi-user
+```
+
+#### 生产环境 (带 Nginx)
+
+```bash
+./deploy.sh production
+```
+
+### 4. 访问应用
+
+- **前端应用**: http://localhost:3000
+- **管理后台**: http://localhost:3003 (多用户模式)
+- **API 接口**: http://localhost:3002
+
+## 🔧 配置说明
+
+### 环境变量配置
+
+创建 `.env` 文件并配置以下变量：
+
+```bash
+# === 应用模式配置 ===
+VITE_APP_MODE=standalone  # 或 multi-user
+
+# === API 配置 ===
+VITE_GEMINI_API_KEY=your_gemini_api_key
+
+# === 多用户模式配置 (仅多用户模式需要) ===
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# === 服务端口配置 ===
+FRONTEND_PORT=3000
+IMAGE_SERVER_PORT=3002
+ADMIN_PORT=3003
+
+# === 企业微信通知 (可选) ===
+VITE_WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
+```
+
+### 数据库配置 (多用户模式)
+
+1. 在 Supabase 中运行迁移文件：
+
+```sql
+-- 执行 supabase/migrations/001_initial_setup.sql 中的内容
+```
+
+2. 配置 Row Level Security (RLS) 策略
+
+## 📖 使用指南
+
+### 单用户模式
+
+1. 启动应用后直接访问前端页面
+2. 输入提示词生成图片
+3. 支持图片编辑和下载
+4. 所有操作无需登录
+
+### 多用户模式
+
+1. 管理员通过管理后台创建用户账户
+2. 用户使用邮箱和密码登录
+3. 系统记录每个用户的使用统计
+4. 管理员可查看所有用户的使用情况
+
+### 管理后台功能
+
+- 📊 **概览页面** - 系统整体使用统计
+- 👥 **用户管理** - 创建、编辑、删除用户
+- 📈 **使用统计** - 详细的使用数据分析
+- 📋 **操作日志** - 用户操作记录查询
+- ⚙️ **系统设置** - 系统配置和维护
+
+## 🛠️ 开发指南
+
+### 本地开发
+
+```bash
+# 安装依赖
+npm install
+
+# 启动前端开发服务器
+npm run dev
+
+# 启动后端服务器 (另一个终端)
+cd server
+node imageServerExtended.cjs
+
+# 启动管理后台 (另一个终端)
+cd admin
+npm run dev
+```
+
+### 项目结构
+
+```
+.
+├── src/                    # 前端源代码
+├── server/                 # 后端服务器
+├── admin/                  # 管理后台
+├── supabase/              # 数据库迁移
+├── scripts/               # 部署脚本
+├── docker-compose.yml     # Docker 编排
+├── deploy.sh             # 部署脚本
+└── README.md            # 项目文档
+```
+
+## 🔄 部署命令参考
+
+```bash
+# 基础部署
+./deploy.sh standalone          # 单用户模式
+./deploy.sh multi-user         # 多用户模式
+./deploy.sh production         # 生产环境
+
+# 高级选项
+./deploy.sh --help             # 查看帮助
+./deploy.sh --force            # 强制重建
+./deploy.sh --no-cache         # 无缓存构建
+./deploy.sh --pull             # 拉取最新镜像
+./deploy.sh --logs             # 显示部署日志
+```
+
+## 📦 备份与恢复
+
+### 数据备份
+
+```bash
+# 完整备份
+./scripts/backup.sh --full
+
+# 仅备份数据库
+./scripts/backup.sh --database
+
+# 仅备份图片文件
+./scripts/backup.sh --images
+
+# 压缩备份
+./scripts/backup.sh --full --compress
+```
+
+### 数据恢复
+
+备份文件保存在 `./backups` 目录中，包含：
+- 配置文件
+- 用户生成的图片
+- 数据库导出
+- 系统日志
+
+## 🚨 故障排除
+
+### 常见问题
+
+1. **Gemini API 调用失败**
+   - 检查 API Key 是否正确
+   - 确认网络连接正常
+   - 查看 API 使用配额
+
+2. **多用户模式无法使用**
+   - 检查 Supabase 配置是否正确
+   - 确认数据库迁移已执行
+   - 验证 RLS 策略是否启用
+
+3. **图片无法保存**
+   - 检查 `generated_images` 目录权限
+   - 确认磁盘空间足够
+   - 查看服务器日志
+
+4. **企业微信通知失败**
+   - 验证 Webhook URL 是否正确
+   - 检查网络连接
+   - 确认机器人权限
+
+### 日志查看
+
+```bash
+# 查看所有服务日志
+docker-compose logs -f
+
+# 查看特定服务日志
+docker-compose logs -f frontend
+docker-compose logs -f backend
+docker-compose logs -f admin
+```
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+本项目采用 MIT 许可证。
+
+## 🙏 致谢
+
+- Google Gemini API
+- Supabase
+- React 和 Vue.js 社区
+- Docker 和容器化技术
 
 ---
 
-**Professional AI Image Generation & Conversational Editing Platform**
-
-A production-ready React + TypeScript application for delightful image generation and conversational, region-aware revisions using Google's Gemini 2.5 Flash Image model. Built with modern web technologies and designed for both creators and developers.
-
-[![Nano Banana Image Editor](https://getsmartgpt.com/nano-banana-editor.jpg)](https://nanobananaeditor.dev)
-
-🍌 [Try the LIVE Demo](https://nanobananaeditor.dev)
-
-## ✨ Key Features
-
-### 🎨 **AI-Powered Creation**
-- **Text-to-Image Generation** - Create stunning images from descriptive prompts
-- **Live Quality Tips** - Real-time feedback to improve your prompts
-- **Reference Image Support** - Use up to 2 reference images to guide generation
-- **Advanced Controls** - Fine-tune creativity levels and use custom seeds
-
-### ✏️ **Intelligent Editing**
-- **Conversational Editing** - Modify images using natural language instructions
-- **Region-Aware Selection** - Paint masks to target specific areas for editing
-- **Style Reference Images** - Upload reference images to guide editing style
-- **Non-Destructive Workflow** - All edits preserve the original image
-
-### 🖼️ **Professional Canvas**
-- **Interactive Canvas** - Zoom, pan, and navigate large images smoothly
-- **Brush Tools** - Variable brush sizes for precise mask painting
-- **Mobile Optimized** - Responsive design that works beautifully on all devices
-- **Keyboard Shortcuts** - Efficient workflow with hotkeys
-
-### 📚 **Project Management**
-- **Generation History** - Track all your creations and edits
-- **Variant Comparison** - Generate and compare multiple versions side-by-side
-- **Full Undo/Redo** - Complete generation tree with branching history
-- **Asset Management** - Organized storage of all generated content
-
-### 🔒 **Enterprise Features**
-- **SynthID Watermarking** - Built-in AI provenance with invisible watermarks
-- **Offline Caching** - IndexedDB storage for offline asset access
-- **Type Safety** - Full TypeScript implementation with strict typing
-- **Performance Optimized** - React Query for efficient state management
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ 
-- A [Google AI Studio](https://aistudio.google.com/) API key
-
-### Installation
-
-1. **Clone and install dependencies**:
-   ```bash
-   git clone <repository-url>
-   cd nano-banana-image-editor
-   npm install
-   ```
-
-2. **Configure environment**:
-   ```bash
-   cp .env.example .env
-   # Add your Gemini API key to VITE_GEMINI_API_KEY
-   ```
-
-3. **Start development server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Open in browser**: Navigate to `http://localhost:5173`
-
-## 🎯 Usage Guide
-
-### Creating Images
-1. Select **Generate** mode
-2. Write a detailed prompt describing your desired image
-3. Optionally upload reference images (max 2)
-4. Adjust creativity settings if needed
-5. Click **Generate** or press `Cmd/Ctrl + Enter`
-
-### Editing Images
-1. Switch to **Edit** mode
-2. Upload an image or use a previously generated one
-3. Optionally paint a mask to target specific areas
-4. Describe your desired changes in natural language
-5. Click **Apply Edit** to see the results
-
-### Advanced Workflows
-- Use **Select** mode to paint precise masks for targeted edits
-- Compare variants in the History panel
-- Download high-quality PNG outputs
-- Use keyboard shortcuts for efficient navigation
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd/Ctrl + Enter` | Generate/Apply Edit |
-| `Shift + R` | Re-roll variants |
-| `E` | Switch to Edit mode |
-| `G` | Switch to Generate mode |
-| `M` | Switch to Select mode |
-| `H` | Toggle history panel |
-| `P` | Toggle prompt panel |
-
-## 🏗️ Architecture
-
-### Tech Stack
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **State Management**: Zustand for app state, React Query for server state  
-- **Canvas**: Konva.js for interactive image display and mask overlays
-- **AI Integration**: Google Generative AI SDK (Gemini 2.5 Flash Image)
-- **Storage**: IndexedDB for offline asset caching
-- **Build Tool**: Vite for fast development and optimized builds
-
-### Project Structure
-```
-src/
-├── components/          # React components
-│   ├── ui/             # Reusable UI components (Button, Input, etc.)
-│   ├── PromptComposer.tsx  # Prompt input and tool selection
-│   ├── ImageCanvas.tsx     # Interactive canvas with Konva
-│   ├── HistoryPanel.tsx    # Generation history and variants
-│   ├── Header.tsx          # App header and navigation
-│   └── InfoModal.tsx       # About modal with links
-├── services/           # External service integrations
-│   ├── geminiService.ts    # Gemini API client
-│   ├── cacheService.ts     # IndexedDB caching layer
-│   └── imageProcessing.ts  # Image manipulation utilities
-├── store/              # Zustand state management
-│   └── useAppStore.ts      # Global application state
-├── hooks/              # Custom React hooks
-│   ├── useImageGeneration.ts  # Generation and editing logic
-│   └── useKeyboardShortcuts.ts # Keyboard navigation
-├── utils/              # Utility functions
-│   ├── cn.ts              # Class name utility
-│   └── imageUtils.ts      # Image processing helpers
-└── types/              # TypeScript type definitions
-    └── index.ts           # Core type definitions
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### Model Configuration
-- **Model**: `gemini-2.5-flash-image-preview`
-- **Output Format**: 1024×1024 PNG with SynthID watermarks
-- **Input Formats**: PNG, JPEG, WebP
-- **Temperature Range**: 0-1 (0 = deterministic, 1 = creative)
-
-## 🚀 Deployment
-
-### Development
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run preview  # Preview production build
-npm run lint     # Run ESLint
-```
-
-### Production Considerations
-- **API Security**: Implement backend proxy for API calls in production
-- **Rate Limiting**: Add proper rate limiting and usage quotas
-- **Authentication**: Consider user authentication for multi-user deployments
-- **Storage**: Set up cloud storage for generated assets
-- **Monitoring**: Add error tracking and analytics
-
-## 📄 License & Copyright
-
-**Copyright © 2025 [Mark Fulton](https://markfulton.com)**
-
-This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-### What this means:
-- ✅ **Free to use** for personal and commercial projects
-- ✅ **Modify and distribute** with proper attribution
-- ⚠️ **Share modifications** - Any changes must be shared under the same license
-- ⚠️ **Network use** - If you run this as a web service, you must provide source code
-
-See the [LICENSE](LICENSE) file for full details.
-
-## 🤝 Contributing
-
-We welcome contributions! Please:
-
-1. **Follow the established patterns** - Keep components under 200 lines
-2. **Maintain type safety** - Use TypeScript strictly with proper definitions
-3. **Test thoroughly** - Ensure keyboard navigation and accessibility
-4. **Document changes** - Update README and add inline comments
-5. **Respect the license** - All contributions will be under AGPL-3.0
-
-## 🔗 Links & Resources
-
-- **Creator**: [Mark Fulton](https://markfulton.com)
-- **AI Training Program**: [Reinventing.AI](https://www.reinventing.ai/)
-- **Community**: [Vibe Coding is Life Skool](https://www.skool.com/vibe-coding-is-life/about?ref=456537abaf37491cbcc6976f3c26af41)
-- **Google AI Studio**: [Get your API key](https://aistudio.google.com/)
-- **Gemini API Docs**: [Official Documentation](https://ai.google.dev/gemini-api/docs)
-
-## 🐛 Known Issues & Limitations
-
-- **Client-side API calls** - Currently uses direct API calls (implement backend proxy for production)
-- **Browser compatibility** - Requires modern browsers with Canvas and WebGL support
-- **Rate limits** - Subject to Google AI Studio rate limits
-- **Image size** - Optimized for 1024×1024 outputs (Gemini model output dimensions may vary)
-
-## 🎯 Suggested Updates
-
-- [ ] Backend API proxy implementation
-- [ ] User authentication and project sharing
-- [ ] Advanced brush tools and selection methods
-- [ ] Plugin system for custom filters
-- [ ] Integration with cloud storage providers
-
----
-
-**Built by [Mark Fulton](https://markfulton.com)** | **Powered by Gemini 2.5 Flash Image** | **Made with Bolt.new**
+**🍌 Nano Banana AI Image Editor - 让 AI 图片生成变得简单有趣！**

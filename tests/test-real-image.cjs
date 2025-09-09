@@ -11,7 +11,7 @@ require('dotenv').config();
 
 // 配置
 const IMAGE_SERVER_URL = 'http://localhost:3002';
-const WEBHOOK_URL = process.env.WECOM_WEBHOOK_URL || process.env.VITE_WECOM_WEBHOOK_URL || '';
+const WEBHOOK_URL = process.env.VITE_WECOM_WEBHOOK_URL || '';
 const REAL_IMAGE_PATH = path.join(__dirname, 'generated_images', 'PixPin_2025-07-09_14-23-39.png');
 
 /**
