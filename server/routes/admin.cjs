@@ -649,9 +649,9 @@ router.get('/logs', adminMiddleware, async (req, res) => {
 router.get('/config', adminMiddleware, async (req, res) => {
   try {
     const config = {
-      appMode: process.env.VITE_APP_MODE || process.env.APP_MODE || 'standalone',
+      appMode: process.env.VITE_APP_MODE || 'standalone',
       features: {
-        multiUser: (process.env.VITE_APP_MODE || process.env.APP_MODE) === 'multi-user',
+        multiUser: process.env.VITE_APP_MODE === 'multi-user',
         notifications: !!process.env.VITE_WECOM_WEBHOOK_URL,
         supabase: supabaseService.isMultiUserMode() && supabaseService.initialized
       },
@@ -681,7 +681,7 @@ router.get('/health', adminMiddleware, async (req, res) => {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      mode: process.env.VITE_APP_MODE || process.env.APP_MODE || 'standalone',
+      mode: process.env.VITE_APP_MODE || 'standalone',
       features: {
         supabase: supabaseService.isMultiUserMode() && supabaseService.initialized,
         imageServer: true,

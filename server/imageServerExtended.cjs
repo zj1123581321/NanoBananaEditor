@@ -25,7 +25,7 @@ const app = express();
 const PORT = process.env.IMAGE_SERVER_PORT || 3002;
 const HOST = process.env.IMAGE_SERVER_HOST || '0.0.0.0';
 const IMAGES_DIR = path.join(__dirname, '../generated_images');
-const APP_MODE = process.env.VITE_APP_MODE || process.env.APP_MODE || 'standalone';
+const APP_MODE = process.env.VITE_APP_MODE || 'standalone';
 
 // 中间件配置
 const allowedOrigins = [

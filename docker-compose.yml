@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        - APP_MODE=${VITE_APP_MODE:-standalone}
+        - VITE_APP_MODE=${VITE_APP_MODE:-standalone}
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     environment:

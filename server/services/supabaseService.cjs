@@ -16,7 +16,7 @@ class SupabaseService {
   }
 
   isMultiUserMode() {
-    const mode = process.env.VITE_APP_MODE || process.env.APP_MODE;
+    const mode = process.env.VITE_APP_MODE;
     return mode === 'multi-user';
   }
 
