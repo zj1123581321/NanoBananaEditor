@@ -5,7 +5,7 @@
  */
 
 import { geminiServiceExtended, type GenerationRequest, type EditRequest } from './geminiServiceExtended';
-import { deviceService, DeviceInfo } from './deviceService';
+import { authService, AuthUser } from './authService';
 import { imageServerServiceExtended, SavedImage } from './imageServerServiceExtended';
 import { isFeatureEnabled } from '../config/app';
 
@@ -21,7 +21,7 @@ export interface IntegratedEditRequest extends EditRequest {
 
 export interface IntegratedGenerationResult {
   images: SavedImage[];
-  deviceInfo: DeviceInfo;
+  user: AuthUser;
   processingTime: number;
   timestamp: string;
   notificationSent: boolean;
@@ -46,10 +46,13 @@ class IntegratedGenerationServiceExtended {
     console.log('💬 提示词:', request.prompt.substring(0, 100) + '...');
 
     try {
-      // 1. 获取设备信息
-      console.log('📱 获取设备信息...');
-      const deviceInfo = await deviceService.getDeviceInfo();
-      console.log(`✅ 设备信息: ${deviceInfo.localIP} (${deviceInfo.deviceId})`);
+      // 1. 获取用户信息
+      console.log('👤 获取用户信息...');
+      const user = authService.getCurrentUser();
+      if (!user) {
+        throw new Error('用户未登录，请先登录后再使用图片生成功能');
+      }
+      console.log(`✅ 用户信息: ${user.username} (${user.email})`);
 
       // 2. 调用扩展的 Gemini 服务生成图片
       console.log('🤖 调用 AI 模型生成图片...');
@@ -81,7 +84,7 @@ class IntegratedGenerationServiceExtended {
           console.log('📢 发送企业微信通知...');
           
           const notificationData = {
-            deviceInfo,
+            user,
             prompt: request.prompt,
             parameters: {
               temperature: request.temperature,
@@ -107,7 +110,7 @@ class IntegratedGenerationServiceExtended {
 
       return {
         images: savedImages,
-        deviceInfo,
+        user,
         processingTime,
         timestamp,
         notificationSent,
@@ -145,9 +148,12 @@ class IntegratedGenerationServiceExtended {
     console.log('💬 编辑指令:', request.instruction.substring(0, 100) + '...');
 
     try {
-      // 1. 获取设备信息
-      console.log('📱 获取设备信息...');
-      const deviceInfo = await deviceService.getDeviceInfo();
+      // 1. 获取用户信息
+      console.log('👤 获取用户信息...');
+      const user = authService.getCurrentUser();
+      if (!user) {
+        throw new Error('用户未登录，请先登录后再使用图片编辑功能');
+      }
 
       // 2. 调用扩展的 Gemini 服务编辑图片
       console.log('🤖 调用 AI 模型编辑图片...');
@@ -177,7 +183,7 @@ class IntegratedGenerationServiceExtended {
       if (request.enableNotification !== false && isFeatureEnabled('notifications')) {
         try {
           const notificationData = {
-            deviceInfo,
+            user,
             prompt: `[图片编辑] ${request.instruction}`,
             parameters: {
               temperature: request.temperature,
@@ -200,7 +206,7 @@ class IntegratedGenerationServiceExtended {
 
       return {
         images: savedImages,
-        deviceInfo,
+        user,
         processingTime,
         timestamp,
         notificationSent,
@@ -222,14 +228,19 @@ class IntegratedGenerationServiceExtended {
    */
   private async sendErrorNotification(prompt: string, error: Error): Promise<void> {
     try {
-      const deviceInfo = await deviceService.getDeviceInfo();
+      const user = authService.getCurrentUser();
+      if (!user) {
+        console.warn('无法发送错误通知：用户未登录');
+        return;
+      }
+      
       const timeStr = new Date().toLocaleString('zh-CN');
 
       const errorMessage = `# ❌ AI图片生成失败
 
-## 📱 设备信息
-- **IP地址:** \`${deviceInfo.localIP}\`
-- **设备ID:** \`${deviceInfo.deviceId}\`
+## 👤 用户信息
+- **用户名:** \`${user.username}\`
+- **邮箱:** \`${user.email}\`
 - **时间:** \`${timeStr}\`
 
 ## 💬 用户提示词
@@ -246,7 +257,7 @@ ${error.message}
 *🍌 Nano Banana AI Image Editor - 错误通知*`;
 
       await imageServerServiceExtended.sendWecomNotification({
-        deviceInfo,
+        user,
         prompt: `[错误] ${prompt}`,
         parameters: { error: error.message },
         images: [],
@@ -265,14 +276,14 @@ ${error.message}
   async checkServicesStatus(): Promise<{
     imageServer: boolean;
     notification: boolean;
-    device: boolean;
+    user: boolean;
     auth: boolean;
     details?: any;
   }> {
     const status = {
       imageServer: false,
       notification: false,
-      device: false,
+      user: false,
       auth: false,
       details: undefined
     };
@@ -292,10 +303,10 @@ ${error.message}
     }
 
     try {
-      await deviceService.getDeviceInfo();
-      status.device = true;
+      const user = authService.getCurrentUser();
+      status.user = user !== null;
     } catch (error) {
-      console.warn('设备服务检查失败:', error);
+      console.warn('用户状态检查失败:', error);
     }
 
     try {
@@ -329,10 +340,14 @@ ${error.message}
     console.log('🧪 开始集成测试...');
 
     try {
-      // 1. 测试设备服务
-      console.log('1. 测试设备服务...');
-      const deviceInfo = await deviceService.getDeviceInfo();
-      console.log('✅ 设备服务正常:', deviceInfo.localIP);
+      // 1. 测试用户服务
+      console.log('1. 测试用户服务...');
+      const user = authService.getCurrentUser();
+      if (user) {
+        console.log('✅ 用户服务正常:', user.username, `(${user.email})`);
+      } else {
+        console.log('⚠️ 用户未登录');
+      }
 
       // 2. 测试图片服务器
       console.log('2. 测试图片服务器...');

@@ -3,11 +3,11 @@
  * 负责发送图片生成完成通知到企业微信群
  */
 
-import { DeviceInfo } from './deviceService';
 import { SavedImage } from './imageServerService';
+import { AuthUser } from './authService';
 
 export interface GenerationNotificationData {
-  deviceInfo: DeviceInfo;
+  user: AuthUser;
   prompt: string;
   parameters: {
     temperature?: number;
@@ -93,7 +93,7 @@ class NotificationService {
    */
   private buildNotificationMessage(data: GenerationNotificationData): any {
     const {
-      deviceInfo,
+      user,
       prompt,
       parameters,
       images,
@@ -125,9 +125,10 @@ class NotificationService {
     // 构建完整消息内容
     const content = `# 🎨 AI图片生成完成通知
 
-## 📱 设备信息
-- **IP地址:** \`${deviceInfo.localIP}\`
-- **设备ID:** \`${deviceInfo.deviceId}\`
+## 👤 用户信息
+- **用户名:** \`${user.username || user.email}\`
+- **邮箱:** \`${user.email}\`
+- **角色:** \`${user.role === 'admin' ? '管理员' : '用户'}\`
 - **生成时间:** \`${timeStr}\`
 
 ## 💬 用户提示词
@@ -217,11 +218,11 @@ ${imageLinks}
    */
   async testNotification(): Promise<void> {
     const testData: GenerationNotificationData = {
-      deviceInfo: {
-        localIP: '192.168.1.100',
-        deviceId: 'test_device_123',
-        userAgent: 'Test Browser',
-        timestamp: Date.now()
+      user: {
+        id: 'test-user-id',
+        email: 'test@example.com',
+        username: '测试用户',
+        role: 'user'
       },
       prompt: '这是一条测试通知消息',
       parameters: {

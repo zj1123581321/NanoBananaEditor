@@ -3,7 +3,7 @@
  * 支持用户认证和多用户模式
  */
 import { getBackendUrl, isMultiUserMode } from '../config/app';
-import { authService } from './authService';
+import { authService, type AuthUser } from './authService';
 
 export interface SavedImage {
   id: string;
@@ -244,7 +244,7 @@ class ImageServerServiceExtended {
    * 发送企业微信通知
    */
   async sendWecomNotification(data: {
-    deviceInfo: any;
+    user: AuthUser;
     prompt: string;
     parameters: any;
     images: SavedImage[];

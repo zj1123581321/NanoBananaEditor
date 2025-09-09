@@ -439,7 +439,8 @@ app.post('/api/wecom/notify', optionalAuthMiddleware, async (req, res) => {
     
     console.log('📢 收到企微通知请求:', {
       userId,
-      deviceIP: notificationData.deviceInfo?.localIP,
+      userEmail: notificationData.user?.email,
+      username: notificationData.user?.username,
       prompt: notificationData.prompt?.substring(0, 50) + '...',
       imageCount: notificationData.images?.length || 0
     });
@@ -447,7 +448,8 @@ app.post('/api/wecom/notify', optionalAuthMiddleware, async (req, res) => {
     // 记录通知操作
     if (userId) {
       await supabaseService.logAction(userId, 'wecom_notification', {
-        deviceIP: notificationData.deviceInfo?.localIP,
+        userEmail: notificationData.user?.email,
+        username: notificationData.user?.username,
         imageCount: notificationData.images?.length || 0
       });
     }
@@ -505,7 +507,7 @@ app.post('/api/wecom/notify', optionalAuthMiddleware, async (req, res) => {
  */
 function buildWecomMessage(data) {
   const {
-    deviceInfo,
+    user,
     prompt,
     parameters,
     images,
@@ -533,9 +535,10 @@ function buildWecomMessage(data) {
 
   const content = `# 🎨 AI图片生成完成通知
 
-## 📱 设备信息
-- **IP地址:** \`${deviceInfo.localIP}\`
-- **设备ID:** \`${deviceInfo.deviceId}\`
+## 👤 用户信息
+- **用户名:** \`${user?.username || user?.email}\`
+- **邮箱:** \`${user?.email || 'Unknown'}\`
+- **角色:** \`${user?.role === 'admin' ? '管理员' : '用户'}\`
 - **生成时间:** \`${timeStr}\`
 
 ## 💬 用户提示词

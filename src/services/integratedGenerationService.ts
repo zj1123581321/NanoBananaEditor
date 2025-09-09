@@ -5,9 +5,9 @@
  */
 
 import { geminiServiceExtended, type GenerationRequest, type EditRequest } from './geminiServiceExtended';
-import { deviceService, DeviceInfo } from './deviceService';
 import { imageServerServiceExtended, SavedImage } from './imageServerServiceExtended';
 import { notificationService, GenerationNotificationData } from './notificationService';
+import { authService, AuthUser } from './authService';
 import { isFeatureEnabled } from '../config/app';
 
 export interface IntegratedGenerationRequest extends GenerationRequest {
@@ -24,7 +24,7 @@ export interface IntegratedEditRequest extends EditRequest {
 
 export interface GenerationResult {
   images: SavedImage[];
-  deviceInfo: DeviceInfo;
+  user: AuthUser;
   processingTime: number;
   timestamp: number;
   notificationSent: boolean;
@@ -52,10 +52,13 @@ class IntegratedGenerationService {
     console.log('🎨 开始图片生成流程...');
 
     try {
-      // 1. 获取设备信息
-      console.log('📱 获取设备信息...');
-      const deviceInfo = await deviceService.getDeviceInfo();
-      console.log(`✅ 设备信息: ${deviceInfo.localIP} (${deviceInfo.deviceId})`);
+      // 1. 获取用户信息
+      console.log('👤 获取用户信息...');
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('用户未登录');
+      }
+      console.log(`✅ 用户信息: ${currentUser.username} (${currentUser.email})`);
 
       // 2. 调用扩展的 Gemini 服务生成图片
       console.log('🤖 调用 AI 模型生成图片...');
@@ -94,7 +97,7 @@ class IntegratedGenerationService {
           console.log('📢 发送企业微信通知...');
           
           const notificationData = {
-            deviceInfo,
+            user: currentUser,
             prompt: request.prompt,
             parameters: {
               temperature: request.temperature,
@@ -120,7 +123,7 @@ class IntegratedGenerationService {
 
       return {
         images: savedImages,
-        deviceInfo,
+        user: currentUser,
         processingTime,
         timestamp,
         notificationSent,
@@ -157,8 +160,11 @@ class IntegratedGenerationService {
     console.log('✏️ 开始图片编辑流程...');
 
     try {
-      // 1. 获取设备信息
-      const deviceInfo = await deviceService.getDeviceInfo();
+      // 1. 获取用户信息
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('用户未登录');
+      }
 
       // 2. 调用 Gemini 编辑图片
       const result = await geminiServiceExtended.editImage({
@@ -190,7 +196,7 @@ class IntegratedGenerationService {
       if (request.enableNotification !== false && notificationService.isConfigured()) {
         try {
           const notificationData: GenerationNotificationData = {
-            deviceInfo,
+            user: currentUser,
             prompt: `[图片编辑] ${request.instruction}`,
             parameters: {
               temperature: request.temperature,
@@ -213,7 +219,7 @@ class IntegratedGenerationService {
 
       return {
         images: savedImages,
-        deviceInfo,
+        user: currentUser,
         processingTime,
         timestamp,
         notificationSent
@@ -231,14 +237,15 @@ class IntegratedGenerationService {
    */
   private async sendErrorNotification(prompt: string, error: Error): Promise<void> {
     try {
-      const deviceInfo = await deviceService.getDeviceInfo();
+      const currentUser = authService.getCurrentUser();
       const timeStr = new Date().toLocaleString('zh-CN');
 
       const errorMessage = `# ❌ AI图片生成失败
 
-## 📱 设备信息
-- **IP地址:** \`${deviceInfo.localIP}\`
-- **设备ID:** \`${deviceInfo.deviceId}\`
+## 👤 用户信息
+- **用户名:** \`${currentUser?.username || 'Unknown'}\`
+- **邮箱:** \`${currentUser?.email || 'Unknown'}\`
+- **角色:** \`${currentUser?.role === 'admin' ? '管理员' : '用户'}\`
 - **时间:** \`${timeStr}\`
 
 ## 💬 用户提示词
@@ -320,10 +327,13 @@ ${error.message}
     console.log('🧪 开始集成测试...');
 
     try {
-      // 1. 测试设备服务
-      console.log('1. 测试设备服务...');
-      const deviceInfo = await deviceService.getDeviceInfo();
-      console.log('✅ 设备服务正常:', deviceInfo.localIP);
+      // 1. 测试用户认证服务
+      console.log('1. 测试用户认证服务...');
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('用户未登录');
+      }
+      console.log('✅ 用户认证服务正常:', currentUser.username);
 
       // 2. 测试图片服务器
       console.log('2. 测试图片服务器...');
