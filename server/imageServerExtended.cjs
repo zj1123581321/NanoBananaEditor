@@ -8,10 +8,13 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 
-// 加载环境变量
-require('dotenv').config();
+// 加载环境变量 - 从项目根目录读取.env文件
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// 导入服务和中间件
+// 导入服务和中间件 - 强制重新加载所有路由
+delete require.cache[require.resolve('./routes/admin.cjs')]; // 清除缓存
+delete require.cache[require.resolve('./routes/gemini.cjs')]; // 清除缓存  
+delete require.cache[require.resolve('./routes/adminAuth.cjs')]; // 清除缓存
 const supabaseService = require('./services/supabaseService.cjs');
 const { authMiddleware, adminMiddleware, optionalAuthMiddleware } = require('./middleware/auth.cjs');
 const geminiRouter = require('./routes/gemini.cjs');

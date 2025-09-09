@@ -98,7 +98,7 @@ class SupabaseService {
 
     try {
       const { error } = await this.supabase
-        .from('action_logs')
+        .from('ai_image_editor_action_logs')
         .insert({
           user_id: userId,
           action,
@@ -125,7 +125,7 @@ class SupabaseService {
 
     try {
       const { error } = await this.supabase
-        .from('chat_history')
+        .from('ai_image_editor_chat_history')
         .insert({
           user_id: userId,
           project_id: projectId,
@@ -145,6 +145,92 @@ class SupabaseService {
   }
 
   /**
+   * 创建用户配置信息 (管理员功能)
+   */
+  async createUser(userData) {
+    if (!this.isMultiUserMode() || !this.supabase) {
+      return { user: null, error: new Error('Supabase not available') };
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('ai_image_editor_user_profiles')
+        .insert({
+          id: userData.id,
+          username: userData.username,
+          role: userData.role || 'user',
+          status: userData.status || 'active'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ 创建用户失败:', error);
+        return { user: null, error };
+      }
+
+      return { user: data, error: null };
+    } catch (error) {
+      console.error('❌ 创建用户异常:', error);
+      return { user: null, error };
+    }
+  }
+
+  /**
+   * 更新用户信息 (管理员功能)
+   */
+  async updateUser(userId, updateData) {
+    if (!this.isMultiUserMode() || !this.supabase) {
+      return { user: null, error: new Error('Supabase not available') };
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('ai_image_editor_user_profiles')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ 更新用户失败:', error);
+        return { user: null, error };
+      }
+
+      return { user: data, error: null };
+    } catch (error) {
+      console.error('❌ 更新用户异常:', error);
+      return { user: null, error };
+    }
+  }
+
+  /**
+   * 删除用户 (管理员功能)
+   */
+  async deleteUser(userId) {
+    if (!this.isMultiUserMode() || !this.supabase) {
+      return { success: false, error: new Error('Supabase not available') };
+    }
+
+    try {
+      const { error } = await this.supabase
+        .from('ai_image_editor_user_profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('❌ 删除用户失败:', error);
+        return { success: false, error };
+      }
+
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('❌ 删除用户异常:', error);
+      return { success: false, error };
+    }
+  }
+
+  /**
    * 获取用户列表 (管理员功能)
    */
   async getUsers(page = 1, limit = 50) {
@@ -156,7 +242,7 @@ class SupabaseService {
       const offset = (page - 1) * limit;
       
       const { data, error, count } = await this.supabase
-        .from('user_profiles')
+        .from('ai_image_editor_user_profiles')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -182,28 +268,56 @@ class SupabaseService {
     }
 
     try {
-      let query = this.supabase
-        .from('usage_stats')
-        .select(`
-          *,
-          user_profiles!inner(username, role)
-        `)
+      // 分别获取统计数据和用户信息，然后手动关联
+      let statsQuery = this.supabase
+        .from('ai_image_editor_usage_stats')
+        .select('*')
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: false });
 
       if (userId) {
-        query = query.eq('user_id', userId);
+        statsQuery = statsQuery.eq('user_id', userId);
       }
 
-      const { data, error } = await query;
+      const { data: statsData, error: statsError } = await statsQuery;
 
-      if (error) {
-        console.error('❌ 获取使用统计失败:', error);
+      if (statsError) {
+        console.error('❌ 获取使用统计失败:', statsError);
         return [];
       }
 
-      return data || [];
+      if (!statsData || statsData.length === 0) {
+        return [];
+      }
+
+      // 获取相关的用户信息
+      const userIds = [...new Set(statsData.map(stat => stat.user_id))];
+      const { data: usersData, error: usersError } = await this.supabase
+        .from('ai_image_editor_user_profiles')
+        .select('id, username, role')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('❌ 获取用户信息失败:', usersError);
+        // 即使用户信息获取失败，也返回统计数据
+        return statsData;
+      }
+
+      // 手动关联用户信息
+      const usersMap = {};
+      if (usersData) {
+        usersData.forEach(user => {
+          usersMap[user.id] = user;
+        });
+      }
+
+      const enrichedStats = statsData.map(stat => ({
+        ...stat,
+        ai_image_editor_user_profiles: usersMap[stat.user_id] || null
+      }));
+
+      return enrichedStats;
     } catch (error) {
       console.error('❌ 获取使用统计异常:', error);
       return [];

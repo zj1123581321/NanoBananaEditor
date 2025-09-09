@@ -3,6 +3,7 @@
  * 负责用户管理和系统统计
  */
 const express = require('express');
+const crypto = require('crypto');
 const { adminMiddleware } = require('../middleware/auth.cjs');
 const supabaseService = require('../services/supabaseService.cjs');
 const router = express.Router();
@@ -39,6 +40,178 @@ router.get('/users', adminMiddleware, async (req, res) => {
 });
 
 /**
+ * 创建新用户
+ * 支持两种数据格式：
+ * 1. 前端 admin 界面发送: {username, password, role, status, metadata}
+ * 2. API 直接调用: {id, username, role, status}
+ */
+router.post('/users', adminMiddleware, async (req, res) => {
+  try {
+    let userData;
+    
+    // 检查前端 admin 界面的格式 (username/password)
+    if (req.body.username && req.body.password) {
+      const { username, password, role, status, metadata } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({
+          error: 'Username and password are required',
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      // 验证用户名格式
+      if (!/^[a-zA-Z0-9_-]{3,50}$/.test(username)) {
+        return res.status(400).json({
+          error: 'Username must be 3-50 characters long and contain only letters, numbers, underscores, and hyphens',
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      // 生成唯一ID
+      const userId = crypto.randomUUID();
+
+      // 设置用户数据用于创建 profile
+      userData = {
+        id: userId,
+        username,
+        role: role || 'user',
+        status: status || 'active'
+      };
+
+      // 可以选择使用 Supabase Auth 创建用户（如果需要认证功能）
+      if (supabaseService.supabase && supabaseService.isMultiUserMode()) {
+        try {
+          // 使用 username 作为 email 格式（如果需要 Auth）
+          const fakeEmail = `${username}@local.nanobana.com`;
+          
+          const { data: authData, error: authError } = await supabaseService.supabase.auth.admin.createUser({
+            email: fakeEmail,
+            password,
+            email_confirm: true,
+            user_metadata: { 
+              username,
+              ...metadata 
+            }
+          });
+
+          if (authError) {
+            console.warn('⚠️ Supabase Auth 创建用户失败，但继续创建 profile:', authError.message);
+            // 不阻止用户创建，因为我们主要使用本地 profile 系统
+          } else {
+            // 使用 Supabase 生成的 ID
+            userData.id = authData.user.id;
+          }
+        } catch (error) {
+          console.warn('⚠️ Supabase Auth 创建过程出错，但继续创建 profile:', error.message);
+        }
+      }
+    } 
+    // API 直接调用的格式 (id/username)
+    else {
+      const { id, username, role, status } = req.body;
+
+      if (!id || !username) {
+        return res.status(400).json({
+          error: 'User ID and username are required for direct API calls',
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      userData = {
+        id,
+        username,
+        role: role || 'user',
+        status: status || 'active'
+      };
+    }
+
+    // 创建用户 profile
+    const result = await supabaseService.createUser(userData);
+
+    if (result.error) {
+      return res.status(400).json({
+        error: 'Failed to create user profile',
+        code: 'CREATE_USER_ERROR',
+        details: result.error.message
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.user
+    });
+  } catch (error) {
+    console.error('❌ 创建用户失败:', error);
+    res.status(500).json({
+      error: 'Failed to create user',
+      code: 'ADMIN_CREATE_USER_ERROR'
+    });
+  }
+});
+
+/**
+ * 更新用户信息
+ */
+router.put('/users/:id', adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const result = await supabaseService.updateUser(id, updateData);
+
+    if (result.error) {
+      return res.status(400).json({
+        error: 'Failed to update user',
+        code: 'UPDATE_USER_ERROR',
+        details: result.error.message
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.user
+    });
+  } catch (error) {
+    console.error('❌ 更新用户失败:', error);
+    res.status(500).json({
+      error: 'Failed to update user',
+      code: 'ADMIN_UPDATE_USER_ERROR'
+    });
+  }
+});
+
+/**
+ * 删除用户
+ */
+router.delete('/users/:id', adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await supabaseService.deleteUser(id);
+
+    if (result.error) {
+      return res.status(400).json({
+        error: 'Failed to delete user',
+        code: 'DELETE_USER_ERROR',
+        details: result.error.message
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ 删除用户失败:', error);
+    res.status(500).json({
+      error: 'Failed to delete user',
+      code: 'ADMIN_DELETE_USER_ERROR'
+    });
+  }
+});
+
+/**
  * 获取系统统计概览
  */
 router.get('/stats/overview', adminMiddleware, async (req, res) => {
@@ -66,7 +239,7 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
 
     // 按用户统计
     const userStats = stats.reduce((acc, stat) => {
-      const username = stat.user_profiles?.username || 'Unknown';
+      const username = stat.ai_image_editor_user_profiles?.username || 'Unknown';
       if (!acc[username]) {
         acc[username] = {
           username,
@@ -220,7 +393,7 @@ router.get('/stats/tokens', adminMiddleware, async (req, res) => {
 
     // 按用户分组Token使用情况
     const tokensByUser = stats.reduce((acc, stat) => {
-      const username = stat.user_profiles?.username || 'Unknown';
+      const username = stat.ai_image_editor_user_profiles?.username || 'Unknown';
       if (!acc[username]) {
         acc[username] = { name: username, value: 0 };
       }
@@ -246,26 +419,91 @@ router.get('/stats/tokens', adminMiddleware, async (req, res) => {
  */
 router.get('/logs', adminMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 20, startDate, endDate } = req.query;
+    const { page = 1, limit = 20, startDate, endDate, action } = req.query;
     
-    // 这里应该从实际的日志存储获取数据
-    // 暂时返回模拟数据
-    const mockLogs = [
-      {
-        id: 1,
-        userName: 'admin',
-        action: 'login',
-        description: '管理员登录系统',
-        createdAt: new Date().toISOString(),
-        userAvatar: null
+    if (!supabaseService.isMultiUserMode() || !supabaseService.initialized) {
+      // 非多用户模式返回模拟数据
+      const mockLogs = [
+        {
+          id: 1,
+          userName: 'admin',
+          action: 'login',
+          description: '管理员登录系统',
+          createdAt: new Date().toISOString(),
+          userAvatar: null
+        }
+      ];
+
+      return res.json({
+        success: true,
+        data: {
+          logs: mockLogs,
+          total: mockLogs.length
+        }
+      });
+    }
+
+    // 从 Supabase 获取实际日志数据
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let logsQuery = supabaseService.supabase
+      .from('ai_image_editor_action_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1);
+
+    if (startDate) {
+      logsQuery = logsQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      logsQuery = logsQuery.lte('created_at', endDate);
+    }
+    if (action) {
+      logsQuery = logsQuery.eq('action', action);
+    }
+
+    const { data: logsData, error: logsError, count } = await logsQuery;
+
+    if (logsError) {
+      console.error('❌ 获取操作日志失败:', logsError);
+      return res.status(500).json({
+        error: 'Failed to fetch logs',
+        code: 'ADMIN_LOGS_ERROR'
+      });
+    }
+
+    // 获取用户信息以便显示用户名
+    const userIds = [...new Set(logsData?.map(log => log.user_id).filter(Boolean) || [])];
+    let usersMap = {};
+    
+    if (userIds.length > 0) {
+      const { data: usersData } = await supabaseService.supabase
+        .from('ai_image_editor_user_profiles')
+        .select('id, username')
+        .in('id', userIds);
+
+      if (usersData) {
+        usersData.forEach(user => {
+          usersMap[user.id] = user;
+        });
       }
-    ];
+    }
+
+    // 转换日志格式以匹配前端期望
+    const formattedLogs = (logsData || []).map(log => ({
+      id: log.id,
+      userName: usersMap[log.user_id]?.username || 'Unknown',
+      action: log.action,
+      description: log.details?.description || log.action,
+      createdAt: log.created_at,
+      userAvatar: null,
+      details: log.details
+    }));
 
     res.json({
       success: true,
       data: {
-        logs: mockLogs,
-        total: mockLogs.length
+        logs: formattedLogs,
+        total: count || formattedLogs.length
       }
     });
   } catch (error) {

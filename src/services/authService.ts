@@ -81,7 +81,7 @@ class AuthService {
     try {
       // 获取用户配置信息
       const { data: profile } = await this.supabase!
-        .from('user_profiles')
+        .from('ai_image_editor_user_profiles')
         .select('username, role, status')
         .eq('id', user.id)
         .single();
@@ -267,7 +267,7 @@ class AuthService {
 
       // 创建用户配置
       const { error: profileError } = await this.supabase
-        .from('user_profiles')
+        .from('ai_image_editor_user_profiles')
         .insert({
           id: data.user.id,
           username,

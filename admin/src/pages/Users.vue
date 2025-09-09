@@ -25,7 +25,7 @@
       <div class="action-right">
         <n-input
           v-model:value="searchKeyword"
-          placeholder="搜索用户邮箱..."
+          placeholder="搜索用户名..."
           clearable
           @clear="handleSearch"
           @keyup.enter="handleSearch"
@@ -64,8 +64,8 @@
           label-placement="left"
           label-width="80px"
         >
-          <n-form-item label="邮箱" path="email">
-            <n-input v-model:value="createForm.email" placeholder="请输入用户邮箱" />
+          <n-form-item label="用户名" path="username">
+            <n-input v-model:value="createForm.username" placeholder="请输入用户名" />
           </n-form-item>
           
           <n-form-item label="密码" path="password">
@@ -116,8 +116,8 @@
           label-placement="left"
           label-width="80px"
         >
-          <n-form-item label="邮箱" path="email">
-            <n-input v-model:value="editForm.email" placeholder="请输入用户邮箱" />
+          <n-form-item label="用户名" path="username">
+            <n-input v-model:value="editForm.username" placeholder="请输入用户名" />
           </n-form-item>
           
           <n-form-item label="备注">
@@ -180,9 +180,11 @@ const showCreateUserModal = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInst | null>(null)
 const createForm = reactive({
-  email: '',
+  username: '',
   password: '',
   confirmPassword: '',
+  role: 'user',
+  status: 'active',
   metadata: {
     note: ''
   }
@@ -194,7 +196,7 @@ const editLoading = ref(false)
 const editFormRef = ref<FormInst | null>(null)
 const editForm = reactive({
   id: '',
-  email: '',
+  username: '',
   metadata: {
     note: ''
   }
@@ -202,9 +204,11 @@ const editForm = reactive({
 
 // 表单验证规则
 const createRules: FormRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, message: '用户名长度不能少于3位', trigger: 'blur' },
+    { max: 50, message: '用户名长度不能超过50位', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和连字符', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -223,18 +227,20 @@ const createRules: FormRules = {
 }
 
 const editRules: FormRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, message: '用户名长度不能少于3位', trigger: 'blur' },
+    { max: 50, message: '用户名长度不能超过50位', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和连字符', trigger: 'blur' }
   ]
 }
 
 // 表格列配置
 const columns: DataTableColumns = [
   {
-    title: '邮箱',
-    key: 'email',
-    width: 250,
+    title: '用户名',
+    key: 'username',
+    width: 200,
     ellipsis: {
       tooltip: true
     }
@@ -331,8 +337,8 @@ const loadUsers = async () => {
     })
     
     if (response.success) {
-      users.value = response.data.users || []
-      paginationConfig.itemCount = response.data.total || 0
+      users.value = response.data || []
+      paginationConfig.itemCount = response.pagination?.total || 0
     } else {
       message.error(response.error || '加载用户列表失败')
     }
@@ -387,8 +393,10 @@ const handleCreateUser = async () => {
     createLoading.value = true
     
     const response = await adminApi.createUser({
-      email: createForm.email,
+      username: createForm.username,
       password: createForm.password,
+      role: createForm.role,
+      status: createForm.status,
       metadata: createForm.metadata
     })
     
@@ -398,9 +406,11 @@ const handleCreateUser = async () => {
       
       // 重置表单
       Object.assign(createForm, {
-        email: '',
+        username: '',
         password: '',
         confirmPassword: '',
+        role: 'user',
+        status: 'active',
         metadata: { note: '' }
       })
       
@@ -422,7 +432,7 @@ const handleCreateUser = async () => {
  */
 const handleEditUser = (user: any) => {
   editForm.id = user.id
-  editForm.email = user.email
+  editForm.username = user.username
   editForm.metadata.note = user.raw_user_meta_data?.note || ''
   
   showEditUserModal.value = true
@@ -439,7 +449,7 @@ const handleUpdateUser = async () => {
     editLoading.value = true
     
     const response = await adminApi.updateUser(editForm.id, {
-      email: editForm.email,
+      username: editForm.username,
       metadata: editForm.metadata
     })
     
@@ -464,7 +474,7 @@ const handleUpdateUser = async () => {
 const handleResetPassword = (user: any) => {
   dialog.warning({
     title: '重置密码确认',
-    content: `确定要重置用户 ${user.email} 的密码吗？系统将生成一个临时密码。`,
+    content: `确定要重置用户 ${user.username} 的密码吗？系统将生成一个临时密码。`,
     positiveText: '确认重置',
     negativeText: '取消',
     onPositiveClick: async () => {
@@ -474,7 +484,7 @@ const handleResetPassword = (user: any) => {
         if (response.success) {
           dialog.success({
             title: '密码重置成功',
-            content: `用户 ${user.email} 的临时密码是：${response.data.temporaryPassword}`,
+            content: `用户 ${user.username} 的临时密码是：${response.data.temporaryPassword}`,
             positiveText: '知道了'
           })
         } else {
@@ -494,7 +504,7 @@ const handleResetPassword = (user: any) => {
 const handleDeleteUser = (user: any) => {
   dialog.error({
     title: '删除用户确认',
-    content: `确定要删除用户 ${user.email} 吗？此操作不可逆转，将同时删除该用户的所有数据。`,
+    content: `确定要删除用户 ${user.username} 吗？此操作不可逆转，将同时删除该用户的所有数据。`,
     positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {

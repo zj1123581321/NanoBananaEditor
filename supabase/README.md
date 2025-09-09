@@ -12,7 +12,7 @@
 
 ## 数据表结构
 
-### 1. 用户配置表 (`user_profiles`)
+### 1. 用户配置表 (`ai_image_editor_user_profiles`)
 
 扩展 Supabase Auth 的用户信息：
 
@@ -25,7 +25,7 @@
 - updated_at: TIMESTAMPTZ
 ```
 
-### 2. 使用统计表 (`usage_stats`)
+### 2. 使用统计表 (`ai_image_editor_usage_stats`)
 
 按日汇总的用户使用统计：
 
@@ -39,7 +39,7 @@
 - edit_count: INTEGER (图片编辑次数)
 ```
 
-### 3. 行为日志表 (`action_logs`)
+### 3. 行为日志表 (`ai_image_editor_action_logs`)
 
 记录用户的详细操作行为：
 
@@ -54,7 +54,7 @@
 - created_at: TIMESTAMPTZ
 ```
 
-### 4. 聊天历史表 (`chat_history`)
+### 4. 聊天历史表 (`ai_image_editor_chat_history`)
 
 保存用户与 AI 的对话历史：
 
@@ -69,7 +69,7 @@
 - created_at: TIMESTAMPTZ
 ```
 
-### 5. 系统配置表 (`system_config`)
+### 5. 系统配置表 (`ai_image_editor_system_config`)
 
 存储系统级别的配置：
 
@@ -101,14 +101,14 @@
 
 ```sql
 -- 用户只能查看自己的使用统计
-CREATE POLICY "users_can_view_own_usage_stats" ON usage_stats
+CREATE POLICY "users_can_view_own_ai_image_editor_usage_stats" ON ai_image_editor_usage_stats
     FOR SELECT USING (auth.uid() = user_id);
 
 -- 管理员可以查看所有统计
-CREATE POLICY "admins_can_view_all_usage_stats" ON usage_stats
+CREATE POLICY "admins_can_view_all_ai_image_editor_usage_stats" ON ai_image_editor_usage_stats
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM user_profiles 
+            SELECT 1 FROM ai_image_editor_user_profiles 
             WHERE id = auth.uid() AND role = 'admin'
         )
     );
@@ -116,12 +116,12 @@ CREATE POLICY "admins_can_view_all_usage_stats" ON usage_stats
 
 ## 数据库函数
 
-### 1. `increment_usage_stats()`
+### 1. `increment_ai_image_editor_usage_stats()`
 
 用于原子性地更新使用统计：
 
 ```sql
-SELECT increment_usage_stats(
+SELECT increment_ai_image_editor_usage_stats(
     'user-uuid',
     '2025-01-01'::DATE,
     100,  -- token 消耗量
@@ -184,10 +184,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ```sql
 -- 备份用户配置
-COPY user_profiles TO '/tmp/user_profiles_backup.csv' CSV HEADER;
+COPY ai_image_editor_user_profiles TO '/tmp/ai_image_editor_user_profiles_backup.csv' CSV HEADER;
 
 -- 备份使用统计
-COPY usage_stats TO '/tmp/usage_stats_backup.csv' CSV HEADER;
+COPY ai_image_editor_usage_stats TO '/tmp/ai_image_editor_usage_stats_backup.csv' CSV HEADER;
 ```
 
 ## 性能优化
@@ -226,7 +226,7 @@ COPY usage_stats TO '/tmp/usage_stats_backup.csv' CSV HEADER;
 
 ```sql
 -- 检查用户权限
-SELECT * FROM user_profiles WHERE id = auth.uid();
+SELECT * FROM ai_image_editor_user_profiles WHERE id = auth.uid();
 
 -- 检查 RLS 策略
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
