@@ -36,7 +36,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 复制 Nginx 配置
-COPY nginx.frontend.conf /etc/nginx/nginx.conf
+COPY config/nginx.frontend.conf /etc/nginx/nginx.conf
 
 # 创建日志目录
 RUN mkdir -p /var/log/nginx

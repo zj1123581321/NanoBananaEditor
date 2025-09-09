@@ -116,7 +116,7 @@ check_environment() {
 stop_services() {
     log "停止现有服务..."
     
-    $COMPOSE_CMD down --remove-orphans || true
+    $COMPOSE_CMD -f docker/docker-compose.yml down --remove-orphans || true
     
     # 清理悬挂的镜像和容器
     if [[ "$FORCE_REBUILD" == "true" ]]; then
@@ -144,13 +144,13 @@ build_images() {
     # 根据模式构建不同的服务
     case $MODE in
         "standalone")
-            $COMPOSE_CMD build $BUILD_ARGS --parallel frontend backend
+            $COMPOSE_CMD -f docker/docker-compose.yml build $BUILD_ARGS --parallel frontend backend
             ;;
         "multi-user")
-            $COMPOSE_CMD build $BUILD_ARGS --parallel frontend backend admin
+            $COMPOSE_CMD -f docker/docker-compose.yml build $BUILD_ARGS --parallel frontend backend admin
             ;;
         "production"|"all")
-            $COMPOSE_CMD build $BUILD_ARGS --parallel
+            $COMPOSE_CMD -f docker/docker-compose.yml build $BUILD_ARGS --parallel
             ;;
         *)
             error "未知的部署模式: $MODE"
@@ -164,7 +164,7 @@ build_images() {
 pull_images() {
     if [[ "$PULL_IMAGES" == "true" ]]; then
         log "拉取最新的基础镜像..."
-        $COMPOSE_CMD pull --ignore-pull-failures || true
+        $COMPOSE_CMD -f docker/docker-compose.yml pull --ignore-pull-failures || true
         log "✅ 镜像拉取完成"
     fi
 }
@@ -179,16 +179,16 @@ start_services() {
     # 根据模式启动相应的服务
     case $MODE in
         "standalone")
-            $COMPOSE_CMD --profile standalone up -d
+            $COMPOSE_CMD -f docker/docker-compose.yml --profile standalone up -d
             ;;
         "multi-user")
-            $COMPOSE_CMD --profile multi-user up -d
+            $COMPOSE_CMD -f docker/docker-compose.yml --profile multi-user up -d
             ;;
         "production")
-            $COMPOSE_CMD --profile production up -d
+            $COMPOSE_CMD -f docker/docker-compose.yml --profile production up -d
             ;;
         "all")
-            $COMPOSE_CMD --profile all up -d
+            $COMPOSE_CMD -f docker/docker-compose.yml --profile all up -d
             ;;
         *)
             error "未知的部署模式: $MODE"
@@ -263,10 +263,10 @@ show_deployment_info() {
     
     echo ""
     echo -e "${BLUE}=== 常用命令 ===${NC}"
-    echo "查看服务状态: $COMPOSE_CMD ps"
-    echo "查看日志:     $COMPOSE_CMD logs -f"
-    echo "停止服务:     $COMPOSE_CMD down"
-    echo "重启服务:     $COMPOSE_CMD restart"
+    echo "查看服务状态: $COMPOSE_CMD -f docker/docker-compose.yml ps"
+    echo "查看日志:     $COMPOSE_CMD -f docker/docker-compose.yml logs -f"
+    echo "停止服务:     $COMPOSE_CMD -f docker/docker-compose.yml down"
+    echo "重启服务:     $COMPOSE_CMD -f docker/docker-compose.yml restart"
     echo ""
 }
 
@@ -274,7 +274,7 @@ show_deployment_info() {
 show_logs() {
     if [[ "$SHOW_LOGS" == "true" ]]; then
         log "显示服务日志 (Ctrl+C 退出)..."
-        $COMPOSE_CMD logs -f
+        $COMPOSE_CMD -f docker/docker-compose.yml logs -f
     fi
 }
 
@@ -283,7 +283,7 @@ cleanup_deployment() {
     read -p "是否要清理所有容器、镜像和数据卷？(y/N): " -r
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         log "清理部署环境..."
-        $COMPOSE_CMD down -v --remove-orphans
+        $COMPOSE_CMD -f docker/docker-compose.yml down -v --remove-orphans
         docker system prune -af --volumes
         log "✅ 清理完成"
     fi
