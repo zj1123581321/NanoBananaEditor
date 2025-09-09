@@ -1,0 +1,1 @@
+const jwt = require('jsonwebtoken'); const JWT_SECRET = 'nano-banana-admin-secret-key-2024'; const token = jwt.sign({id: 'admin-test', username: 'admin', role: 'admin'}, JWT_SECRET, {expiresIn: '1h'}); console.log('Admin Token:', token);

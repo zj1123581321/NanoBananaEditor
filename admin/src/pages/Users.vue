@@ -64,6 +64,10 @@
           label-placement="left"
           label-width="80px"
         >
+          <n-form-item label="邮箱" path="email">
+            <n-input v-model:value="createForm.email" placeholder="请输入邮箱地址" type="email" />
+          </n-form-item>
+          
           <n-form-item label="用户名" path="username">
             <n-input v-model:value="createForm.username" placeholder="请输入用户名" />
           </n-form-item>
@@ -180,6 +184,7 @@ const showCreateUserModal = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInst | null>(null)
 const createForm = reactive({
+  email: '',
   username: '',
   password: '',
   confirmPassword: '',
@@ -204,6 +209,10 @@ const editForm = reactive({
 
 // 表单验证规则
 const createRules: FormRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  ],
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, message: '用户名长度不能少于3位', trigger: 'blur' },
@@ -393,6 +402,7 @@ const handleCreateUser = async () => {
     createLoading.value = true
     
     const response = await adminApi.createUser({
+      email: createForm.email,
       username: createForm.username,
       password: createForm.password,
       role: createForm.role,
@@ -406,6 +416,7 @@ const handleCreateUser = async () => {
       
       // 重置表单
       Object.assign(createForm, {
+        email: '',
         username: '',
         password: '',
         confirmPassword: '',

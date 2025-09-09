@@ -49,13 +49,13 @@ router.post('/users', adminMiddleware, async (req, res) => {
   try {
     let userData;
     
-    // 检查前端 admin 界面的格式 (username/password)
+    // 检查前端 admin 界面的格式 (email/username/password)
     if (req.body.username && req.body.password) {
-      const { username, password, role, status, metadata } = req.body;
+      const { email, username, password, role, status, metadata } = req.body;
       
-      if (!username || !password) {
+      if (!email || !username || !password) {
         return res.status(400).json({
-          error: 'Username and password are required',
+          error: 'Email, username and password are required',
           code: 'VALIDATION_ERROR'
         });
       }
@@ -82,11 +82,9 @@ router.post('/users', adminMiddleware, async (req, res) => {
       // 可以选择使用 Supabase Auth 创建用户（如果需要认证功能）
       if (supabaseService.supabase && supabaseService.isMultiUserMode()) {
         try {
-          // 使用 username 作为 email 格式（如果需要 Auth）
-          const fakeEmail = `${username}@local.nanobana.com`;
-          
+          // 使用真实邮箱地址进行 Supabase Auth 创建
           const { data: authData, error: authError } = await supabaseService.supabase.auth.admin.createUser({
-            email: fakeEmail,
+            email,
             password,
             email_confirm: true,
             user_metadata: { 
@@ -96,14 +94,52 @@ router.post('/users', adminMiddleware, async (req, res) => {
           });
 
           if (authError) {
-            console.warn('⚠️ Supabase Auth 创建用户失败，但继续创建 profile:', authError.message);
-            // 不阻止用户创建，因为我们主要使用本地 profile 系统
+            // 检查是否是邮箱已存在的错误
+            if (authError.message.includes('already been registered') || authError.message.includes('already exists')) {
+              // 邮箱已存在，尝试获取现有用户信息
+              console.log('📧 邮箱已存在，尝试获取现有用户信息...');
+              
+              try {
+                const { data: existingUsers } = await supabaseService.supabase.auth.admin.listUsers();
+                const existingUser = existingUsers.users.find(u => u.email === email);
+                
+                if (existingUser) {
+                  userData.id = existingUser.id;
+                  console.log('✅ 找到现有用户，使用其 ID:', existingUser.id);
+                } else {
+                  return res.status(400).json({
+                    error: 'Email already registered but user not found',
+                    code: 'USER_LOOKUP_ERROR'
+                  });
+                }
+              } catch (lookupError) {
+                console.error('❌ 查找现有用户失败:', lookupError);
+                return res.status(400).json({
+                  error: 'Failed to lookup existing user',
+                  code: 'USER_LOOKUP_ERROR'
+                });
+              }
+            } else {
+              // 其他 Auth 错误，停止创建
+              console.error('❌ Supabase Auth 创建失败:', authError.message);
+              return res.status(400).json({
+                error: 'Failed to create user authentication',
+                code: 'AUTH_CREATE_ERROR',
+                details: authError.message
+              });
+            }
           } else {
             // 使用 Supabase 生成的 ID
             userData.id = authData.user.id;
+            console.log('✅ Supabase Auth 用户创建成功，ID:', authData.user.id);
           }
         } catch (error) {
-          console.warn('⚠️ Supabase Auth 创建过程出错，但继续创建 profile:', error.message);
+          console.error('❌ Supabase Auth 创建过程异常:', error.message);
+          return res.status(500).json({
+            error: 'Authentication service error',
+            code: 'AUTH_SERVICE_ERROR',
+            details: error.message
+          });
         }
       }
     } 
@@ -210,6 +246,98 @@ router.delete('/users/:id', adminMiddleware, async (req, res) => {
     });
   }
 });
+
+/**
+ * 重置用户密码
+ */
+router.post('/users/:id/reset-password', adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!supabaseService.supabase || !supabaseService.isMultiUserMode()) {
+      return res.status(400).json({
+        error: 'Password reset not available in standalone mode',
+        code: 'FEATURE_NOT_AVAILABLE'
+      });
+    }
+
+    // 生成临时密码
+    const tempPassword = generateTemporaryPassword();
+    
+    try {
+      // 使用 Supabase Auth Admin API 重置用户密码
+      const { data: userData, error: resetError } = await supabaseService.supabase.auth.admin.updateUserById(
+        id,
+        {
+          password: tempPassword,
+          email_confirm: true // 确保不需要邮箱确认
+        }
+      );
+
+      if (resetError) {
+        console.error('❌ Supabase 重置密码失败:', resetError);
+        return res.status(400).json({
+          error: 'Failed to reset user password',
+          code: 'PASSWORD_RESET_ERROR',
+          details: resetError.message
+        });
+      }
+
+      // 记录密码重置操作
+      await supabaseService.logAction(req.user?.id || 'admin', 'password_reset', {
+        targetUserId: id,
+        targetUserEmail: userData.user.email,
+        resetBy: req.user?.username || 'admin'
+      });
+
+      console.log(`✅ 用户密码重置成功 - ID: ${id}, 临时密码已生成`);
+
+      res.json({
+        success: true,
+        data: {
+          message: 'Password reset successfully',
+          temporaryPassword: tempPassword,
+          userId: id,
+          email: userData.user.email
+        }
+      });
+    } catch (authError) {
+      console.error('❌ 密码重置过程异常:', authError);
+      return res.status(500).json({
+        error: 'Password reset service error',
+        code: 'AUTH_RESET_ERROR',
+        details: authError.message
+      });
+    }
+  } catch (error) {
+    console.error('❌ 重置用户密码失败:', error);
+    res.status(500).json({
+      error: 'Failed to reset password',
+      code: 'ADMIN_PASSWORD_RESET_ERROR'
+    });
+  }
+});
+
+/**
+ * 生成临时密码
+ */
+function generateTemporaryPassword() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let password = '';
+  
+  // 确保包含至少一个大写字母、小写字母和数字
+  password += chars.charAt(Math.floor(Math.random() * 26)); // 小写字母
+  password += chars.charAt(26 + Math.floor(Math.random() * 26)); // 大写字母  
+  password += chars.charAt(52 + Math.floor(Math.random() * 10)); // 数字
+  
+  // 添加其余字符至8位
+  for (let i = 3; i < 8; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  // 打乱顺序
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}
 
 /**
  * 获取系统统计概览

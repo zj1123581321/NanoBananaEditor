@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { PromptComposer } from './components/PromptComposer';
 import { ImageCanvas } from './components/ImageCanvas';
 import { HistoryPanel } from './components/HistoryPanel';
+import { AuthWrapper } from './components/AuthWrapper';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useAppStore } from './store/useAppStore';
 
@@ -59,7 +60,9 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <AuthWrapper>
+        <AppContent />
+      </AuthWrapper>
     </QueryClientProvider>
   );
 }

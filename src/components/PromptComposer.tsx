@@ -6,11 +6,13 @@ import { useAppStore } from '../store/useAppStore';
 import { useImageGeneration, useImageEditing } from '../hooks/useImageGeneration';
 import { useImagePaste, useImagePasteStatus } from '../hooks/useImagePaste';
 import { useImageDrop } from '../hooks/useImageDrop';
+import { useAuthInterceptor } from '../hooks/useAuthInterceptor';
 import { Upload, Wand2, Edit3, MousePointer, HelpCircle, ChevronDown, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
 import { blobToBase64 } from '../utils/imageUtils';
 import { PromptHints } from './PromptHints';
 import { PromptOptimizer } from './PromptOptimizer';
 import { ImagePasteToast } from './ImagePasteToast';
+import { LoginModal } from './LoginModal';
 import { cn } from '../utils/cn';
 
 export const PromptComposer: React.FC = () => {
@@ -47,6 +49,19 @@ export const PromptComposer: React.FC = () => {
   const [showHintsModal, setShowHintsModal] = useState(false);
   const [showPromptOptimizer, setShowPromptOptimizer] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 认证拦截器
+  const { 
+    showLoginModal, 
+    setShowLoginModal, 
+    executeWithAuth,
+    checkAuthAndExecute
+  } = useAuthInterceptor({
+    actionName: '图片生成',
+    onLoginRequired: () => {
+      console.log('🍌 需要登录才能使用图片生成功能');
+    }
+  });
   
   // 图片粘贴功能
   const { status, showSuccess, showError, hide } = useImagePasteStatus();
@@ -94,22 +109,34 @@ export const PromptComposer: React.FC = () => {
     enabled: true
   });
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!currentPrompt.trim()) return;
     
+    // 检查认证状态
+    const actionName = selectedTool === 'generate' ? '图片生成' : 
+                      selectedTool === 'edit' ? '图片编辑' : '图片处理';
+    
+    const { canExecute } = await checkAuthAndExecute(async () => {}, actionName);
+    
+    if (!canExecute) {
+      // 用户未登录，已经显示登录弹窗
+      return;
+    }
+    
+    // 用户已登录或单用户模式，执行操作
     if (selectedTool === 'generate') {
       const referenceImages = uploadedImages
         .filter(img => img.includes('base64,'))
         .map(img => img.split('base64,')[1]);
         
-      generate({
+      await generate({
         prompt: currentPrompt,
         referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         temperature,
         seed: seed || undefined
       });
     } else if (selectedTool === 'edit' || selectedTool === 'mask') {
-      edit(currentPrompt);
+      await edit(currentPrompt);
     }
   };
 
@@ -530,6 +557,18 @@ export const PromptComposer: React.FC = () => {
         message={status.message}
         type={status.type}
         onClose={hide}
+      />
+      
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {
+          console.log('🍌 登录成功，可以继续操作');
+          setShowLoginModal(false);
+        }}
+        title="登录后继续"
+        description={`请登录后使用${selectedTool === 'generate' ? '图片生成' : selectedTool === 'edit' ? '图片编辑' : '图片处理'}功能`}
       />
     </>
   );
