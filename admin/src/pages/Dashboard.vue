@@ -27,6 +27,7 @@
         :value="currentRoute"
         @update:value="handleMenuSelect"
         style="padding-top: 8px;"
+        :watch-props="['value']"
       />
       
       <div class="sidebar-footer">
@@ -99,18 +100,14 @@
       
       <!-- 页面内容 -->
       <n-layout-content style="padding: 24px; height: calc(100vh - 64px); overflow: auto;">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <router-view />
       </n-layout-content>
     </n-layout>
   </n-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
@@ -137,6 +134,7 @@ const authStore = useAuthStore()
 
 const refreshing = ref(false)
 const isFullscreen = ref(false)
+const isNavigating = ref(false)
 
 // 当前路由名
 const currentRoute = computed(() => route.name as string)
@@ -207,8 +205,33 @@ const userMenuOptions = [
 /**
  * 处理菜单选择
  */
-const handleMenuSelect = (key: string) => {
-  router.push({ name: key })
+const handleMenuSelect = async (key: string) => {
+  // 防止重复点击同一个路由或正在导航中
+  if (route.name === key || isNavigating.value) {
+    return
+  }
+  
+  isNavigating.value = true
+  
+  try {
+    // 等待当前的 DOM 更新完成
+    await nextTick()
+    
+    // 执行路由导航
+    await router.push({ name: key }).catch(err => {
+      // 处理路由导航错误
+      if (err.name !== 'NavigationDuplicated') {
+        console.error('Route navigation error:', err)
+      }
+    })
+  } catch (error) {
+    console.error('Menu selection error:', error)
+  } finally {
+    // 使用 setTimeout 确保导航完成后再重置状态
+    setTimeout(() => {
+      isNavigating.value = false
+    }, 100)
+  }
 }
 
 /**
@@ -262,13 +285,22 @@ const toggleFullscreen = () => {
   }
 }
 
-// 监听全屏状态变化
-document.addEventListener('fullscreenchange', () => {
+/**
+ * 全屏状态变化监听器
+ */
+const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement
-})
+}
 
 onMounted(() => {
   appStore.initializeApp()
+  // 添加全屏状态变化监听
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+})
+
+onUnmounted(() => {
+  // 清理事件监听器
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
 })
 </script>
 

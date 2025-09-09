@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, h } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, h } from 'vue'
 import type { DataTableColumns, FormInst, FormRules } from 'naive-ui'
 import { useMessage, useDialog } from 'naive-ui'
 import { 
@@ -359,6 +359,8 @@ const columns: DataTableColumns = [
  * 加载用户列表
  */
 const loadUsers = async () => {
+  if (isUnmounted.value) return
+  
   loading.value = true
   
   try {
@@ -368,6 +370,9 @@ const loadUsers = async () => {
       search: searchKeyword.value
     })
     
+    // 检查组件是否已卸载
+    if (isUnmounted.value) return
+    
     if (response.success) {
       users.value = response.data || []
       paginationConfig.itemCount = response.pagination?.total || 0
@@ -375,10 +380,13 @@ const loadUsers = async () => {
       message.error(response.error || '加载用户列表失败')
     }
   } catch (error) {
+    if (isUnmounted.value) return
     console.error('Load users failed:', error)
     message.error('网络错误，请稍后重试')
   } finally {
-    loading.value = false
+    if (!isUnmounted.value) {
+      loading.value = false
+    }
   }
 }
 
@@ -559,8 +567,23 @@ const handleDeleteUser = (user: any) => {
   })
 }
 
+// 组件是否已卸载的标志
+const isUnmounted = ref(false)
+
+/**
+ * 安全的异步操作包装器
+ */
+const safeAsync = async (fn: () => Promise<void>) => {
+  if (isUnmounted.value) return
+  return await fn()
+}
+
 onMounted(() => {
   loadUsers()
+})
+
+onUnmounted(() => {
+  isUnmounted.value = true
 })
 </script>
 

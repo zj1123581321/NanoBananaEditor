@@ -176,7 +176,11 @@ import {
 } from '@vicons/antd'
 import { adminApi } from '../services/api'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+
+// 扩展 dayjs 插件
+dayjs.extend(relativeTime)
 
 use([
   CanvasRenderer,
@@ -311,7 +315,15 @@ const formatCost = (cost: number): string => {
  * 格式化活动时间
  */
 const formatActivityTime = (time: string): string => {
-  return dayjs(time).fromNow()
+  try {
+    if (!time) return '未知时间'
+    const dayjsTime = dayjs(time)
+    if (!dayjsTime.isValid()) return '无效时间'
+    return dayjsTime.fromNow()
+  } catch (error) {
+    console.error('Format activity time error:', error, 'time:', time)
+    return '时间格式错误'
+  }
 }
 
 /**
