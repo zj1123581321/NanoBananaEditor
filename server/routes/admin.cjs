@@ -356,18 +356,20 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
     // 获取用户总数
     const { total: totalUsers } = await supabaseService.getUsers(1, 1);
     
-    // 计算汇总统计
+    // 计算汇总统计 (支持新的数据库结构)
     const totals = stats.reduce((acc, stat) => {
-      acc.totalTokens += stat.token_consumed || 0;
+      acc.totalTokens += stat.total_tokens || stat.token_consumed || 0;
       acc.totalRequests += stat.request_count || 0;
       acc.totalGenerations += stat.generation_count || 0;
       acc.totalEdits += stat.edit_count || 0;
+      acc.totalCost += parseFloat(stat.total_cost_usd || 0);
       return acc;
     }, {
       totalTokens: 0,
       totalRequests: 0,
       totalGenerations: 0,
-      totalEdits: 0
+      totalEdits: 0,
+      totalCost: 0
     });
 
     // 计算活跃用户数（最近7天内有操作的用户）
@@ -432,6 +434,7 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
           totalUsers,
           totalGenerations: totals.totalGenerations,
           totalTokens: totals.totalTokens,
+          totalCost: totals.totalCost,
           activeUsers
         },
         usageTrend,

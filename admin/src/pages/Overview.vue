@@ -53,6 +53,22 @@
       <n-gi span="4 s:2 m:1">
         <n-card class="stat-card">
           <div class="stat-content">
+            <div class="stat-icon cost-icon">
+              <n-icon size="24">
+                <CreditCardOutlined />
+              </n-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatCost(stats.totalCost) }}</div>
+              <div class="stat-label">总成本 (USD)</div>
+            </div>
+          </div>
+        </n-card>
+      </n-gi>
+      
+      <n-gi span="4 s:2 m:1">
+        <n-card class="stat-card">
+          <div class="stat-content">
             <div class="stat-icon active-icon">
               <n-icon size="24">
                 <ClockCircleOutlined />
@@ -179,6 +195,7 @@ const stats = ref({
   totalUsers: 0,
   totalGenerations: 0,
   totalTokens: 0,
+  totalCost: 0,
   activeUsers: 0
 })
 
@@ -281,6 +298,16 @@ const formatNumber = (num: number): string => {
 }
 
 /**
+ * 格式化成本 (USD)
+ */
+const formatCost = (cost: number): string => {
+  if (cost === 0) return '$0'
+  if (cost < 0.001) return '<$0.001'
+  if (cost < 1) return `$${cost.toFixed(3)}`
+  return `$${cost.toFixed(2)}`
+}
+
+/**
  * 格式化活动时间
  */
 const formatActivityTime = (time: string): string => {
@@ -312,6 +339,7 @@ const loadOverviewStats = async () => {
         totalUsers: 0,
         totalGenerations: 0,
         totalTokens: 0,
+        totalCost: 0,
         activeUsers: 0
       }
       
@@ -378,6 +406,10 @@ onMounted(() => {
 
 .active-icon {
   background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.cost-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .stat-info {

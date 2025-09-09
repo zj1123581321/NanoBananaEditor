@@ -1,0 +1,41 @@
+{
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {
+                        "text": "Here is your nano banana dish in a fancy restaurant with a Gemini theme: "
+                    },
+                    {
+                        "inlineData": {
+                            "mimeType": "image/png",
+                            "data":"xx.base64..xx" 
+                                      }
+                    }
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP",
+            "index": 0
+        }
+    ],
+    "usageMetadata": {
+        "promptTokenCount": 16,
+        "candidatesTokenCount": 1306,
+        "totalTokenCount": 1322,
+        "promptTokensDetails": [
+            {
+                "modality": "TEXT",
+                "tokenCount": 16
+            }
+        ],
+        "candidatesTokensDetails": [
+            {
+                "modality": "IMAGE",
+                "tokenCount": 1290
+            }
+        ]
+    },
+    "modelVersion": "gemini-2.5-flash-image-preview",
+    "responseId": "gee_aMOFOcW3qtsPtOGGiAY"
+}

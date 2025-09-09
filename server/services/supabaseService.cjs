@@ -3,6 +3,7 @@
  * 负责用户管理、统计记录和数据库操作
  */
 const { createClient } = require('@supabase/supabase-js');
+const { tokenAnalyzer } = require('./tokenAnalyzer.cjs');
 
 class SupabaseService {
   constructor() {
@@ -40,6 +41,9 @@ class SupabaseService {
     
     this.initialized = true;
     console.log('✅ Supabase 服务初始化成功');
+    
+    // 将 Supabase 服务实例传递给 token 分析器
+    tokenAnalyzer.setSupabaseService(this);
   }
 
   /**
@@ -63,29 +67,73 @@ class SupabaseService {
   }
 
   /**
-   * 记录使用统计
+   * 记录使用统计 (使用新的 token 分析器)
+   * @param {string} userId - 用户 ID
+   * @param {string} actionType - 操作类型 ('generate' 或 'edit')
+   * @param {Object} apiResponse - API 响应对象 (包含完整的 token 使用信息)
+   * @param {string} provider - API 提供商名称 (默认: 'google')
    */
-  async recordUsage(userId, actionType, tokenUsed = 0) {
+  async recordUsage(userId, actionType, apiResponse = null, provider = 'google') {
     if (!this.isMultiUserMode() || !this.supabase) {
+      console.log('⚠️ 非多用户模式或 Supabase 不可用，跳过使用统计记录');
       return;
     }
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { error } = await this.supabase.rpc('increment_usage_stats', {
-        p_user_id: userId,
-        p_date: today,
-        p_token_consumed: tokenUsed,
-        p_action_type: actionType
-      });
+      if (apiResponse && apiResponse.usageMetadata) {
+        // 使用新的 token 分析器记录详细统计
+        console.log(`📊 使用新 token 分析器记录使用统计 - 用户: ${userId}, 操作: ${actionType}, 提供商: ${provider}`);
+        
+        const tokenUsage = await tokenAnalyzer.recordUsage(provider, apiResponse, userId, actionType);
+        
+        console.log('✅ 详细使用统计已记录:', {
+          inputTokens: tokenUsage.inputTokens,
+          outputTokens: tokenUsage.outputTokens,
+          totalCost: tokenUsage.costUsd?.total || 0,
+          provider: tokenUsage.provider,
+          model: tokenUsage.modelName
+        });
+        
+        return tokenUsage;
+      } else {
+        // 备用方案：使用旧的简单统计方式
+        console.log('⚠️ API 响应中缺少 usageMetadata，使用旧统计方式');
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        // 使用新的存储过程，但传入默认值
+        const { error } = await this.supabase.rpc('increment_usage_stats_v2', {
+          p_user_id: userId,
+          p_date: today,
+          p_provider: provider,
+          p_model_name: 'unknown',
+          p_input_tokens: 0,
+          p_output_tokens: 0,
+          p_input_cost: 0,
+          p_output_cost: 0,
+          p_action_type: actionType
+        });
 
-      if (error) {
-        console.error('❌ 记录使用统计失败:', error);
+        if (error) {
+          console.error('❌ 记录使用统计失败:', error);
+          throw error;
+        }
+        
+        console.log('✅ 简单使用统计已记录');
       }
     } catch (error) {
       console.error('❌ 记录使用统计异常:', error);
+      throw error;
     }
+  }
+
+  /**
+   * 记录使用统计 (旧版本，兼容性保留)
+   * @deprecated 使用新的 recordUsage 方法替代
+   */
+  async recordUsageOld(userId, actionType, tokenUsed = 0) {
+    console.warn('⚠️ 使用了已过时的 recordUsageOld 方法，建议升级到 recordUsage');
+    return this.recordUsage(userId, actionType, null);
   }
 
   /**
@@ -326,16 +374,22 @@ class SupabaseService {
         };
       }
 
-      // 汇总所有统计数据
+      // 汇总所有统计数据 (支持新的数据库结构)
       const stats = (data || []).reduce((acc, stat) => {
         acc.generation_count += stat.generation_count || 0;
-        acc.total_tokens += stat.token_consumed || 0;
+        acc.total_tokens += stat.total_tokens || (stat.input_tokens + stat.output_tokens) || stat.token_consumed || 0;
+        acc.input_tokens += stat.input_tokens || 0;
+        acc.output_tokens += stat.output_tokens || 0;
+        acc.total_cost_usd += parseFloat(stat.total_cost_usd || 0);
         acc.edit_count += stat.edit_count || 0;
         acc.request_count += stat.request_count || 0;
         return acc;
       }, {
         generation_count: 0,
         total_tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        total_cost_usd: 0,
         edit_count: 0,
         request_count: 0
       });

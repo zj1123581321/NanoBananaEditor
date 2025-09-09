@@ -284,7 +284,26 @@ const userActivityOption = computed(() => ({
 const userRankingColumns: DataTableColumns = [
   { title: '排名', key: 'rank', width: 80 },
   { title: '用户邮箱', key: 'email', ellipsis: { tooltip: true } },
-  { title: 'Token 使用', key: 'tokens', width: 120 },
+  { 
+    title: 'Token 使用', 
+    key: 'tokens', 
+    width: 150,
+    render: (row: any) => {
+      const input = row.input_tokens || 0
+      const output = row.output_tokens || 0
+      const total = row.tokens || row.total_tokens || (input + output)
+      return `${formatNumber(total)} (入${formatNumber(input)}/出${formatNumber(output)})`
+    }
+  },
+  { 
+    title: '成本 (USD)', 
+    key: 'cost', 
+    width: 120,
+    render: (row: any) => {
+      const cost = row.total_cost_usd || row.cost || 0
+      return formatCost(cost)
+    }
+  },
   { title: '生成次数', key: 'generations', width: 100 },
   { title: '最后活跃', key: 'lastActive', width: 150 }
 ]
@@ -293,11 +312,55 @@ const userRankingColumns: DataTableColumns = [
 const detailColumns: DataTableColumns = [
   { title: '日期', key: 'date', width: 120 },
   { title: '用户邮箱', key: 'userEmail', ellipsis: { tooltip: true } },
-  { title: 'Token 使用', key: 'tokens', width: 100 },
+  { 
+    title: 'Token 使用', 
+    key: 'tokens', 
+    width: 150,
+    render: (row: any) => {
+      const input = row.input_tokens || 0
+      const output = row.output_tokens || 0
+      const total = row.tokens || (input + output)
+      if (input > 0 || output > 0) {
+        return `${formatNumber(total)} (入${formatNumber(input)}/出${formatNumber(output)})`
+      }
+      return formatNumber(total)
+    }
+  },
+  { 
+    title: '成本 (USD)', 
+    key: 'cost', 
+    width: 100,
+    render: (row: any) => {
+      const cost = row.total_cost_usd || row.cost || 0
+      return formatCost(cost)
+    }
+  },
   { title: '生成次数', key: 'generations', width: 100 },
   { title: '编辑次数', key: 'edits', width: 100 },
   { title: '操作时间', key: 'createdAt', width: 150 }
 ]
+
+/**
+ * 格式化数字
+ */
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
+/**
+ * 格式化成本 (USD)
+ */
+const formatCost = (cost: number): string => {
+  if (cost === 0) return '$0'
+  if (cost < 0.001) return '<$0.001'
+  if (cost < 1) return `$${cost.toFixed(3)}`
+  return `$${cost.toFixed(2)}`
+}
 
 /**
  * 格式化图表日期
@@ -400,7 +463,10 @@ const loadDetailStats = async () => {
       detailData.value = (response.data?.logs || []).map((log: any) => ({
         date: dayjs(log.createdAt || log.created_at).format('MM-DD'),
         userEmail: log.userName || log.user_email || '-',
-        tokens: log.tokens_used || log.details?.tokens || 0,
+        tokens: log.tokens_used || log.details?.tokens || log.total_tokens || 0,
+        input_tokens: log.input_tokens || log.details?.input_tokens || 0,
+        output_tokens: log.output_tokens || log.details?.output_tokens || 0,
+        total_cost_usd: log.total_cost_usd || log.details?.total_cost_usd || 0,
         generations: log.action === 'generate' ? 1 : 0,
         edits: log.action === 'edit' ? 1 : 0,
         createdAt: dayjs(log.createdAt || log.created_at).format('HH:mm:ss')

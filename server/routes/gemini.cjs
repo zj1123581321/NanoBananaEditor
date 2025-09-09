@@ -108,13 +108,24 @@ async function callGeminiAPI(params) {
       contents,
     });
 
+    // 返回完整的响应，包含详细的 usageMetadata 和 modelVersion
     return {
       candidates: response.candidates,
       usageMetadata: response.usageMetadata || {
         promptTokenCount: estimateTokens(params.prompt || params.instruction || ''),
         candidatesTokenCount: 50,
-        totalTokenCount: estimateTokens(params.prompt || params.instruction || '') + 50
-      }
+        totalTokenCount: estimateTokens(params.prompt || params.instruction || '') + 50,
+        // 为备用方案添加详细的 token 分组信息
+        promptTokensDetails: [{
+          modality: 'TEXT',
+          tokenCount: estimateTokens(params.prompt || params.instruction || '')
+        }],
+        candidatesTokensDetails: [{
+          modality: 'IMAGE',
+          tokenCount: 50
+        }]
+      },
+      modelVersion: response.modelVersion || 'gemini-2.5-flash-image-preview'
     };
   } catch (error) {
     console.error('❌ Gemini API 调用失败:', error);
@@ -158,8 +169,15 @@ router.post('/generate', authMiddleware, async (req, res) => {
     const processingTime = Date.now() - startTime;
     const tokenUsed = result.usageMetadata?.totalTokenCount || estimateTokens(prompt);
 
-    // 记录使用统计
-    await supabaseService.recordUsage(userId, 'generate', tokenUsed);
+    // 记录使用统计 (传递完整的 API 响应以进行详细的 token 分析)
+    try {
+      await supabaseService.recordUsage(userId, 'generate', result, 'google');
+      console.log('✅ 详细 token 统计已记录');
+    } catch (recordError) {
+      console.warn('⚠️ 详细统计记录失败，使用备用方案:', recordError.message);
+      // 备用方案：使用旧的统计方式
+      await supabaseService.recordUsageOld(userId, 'generate', tokenUsed);
+    }
 
     // 记录成功操作
     await supabaseService.logAction(userId, 'generate_success', {
@@ -249,8 +267,15 @@ router.post('/edit', authMiddleware, async (req, res) => {
     const processingTime = Date.now() - startTime;
     const tokenUsed = result.usageMetadata?.totalTokenCount || estimateTokens(instruction);
 
-    // 记录使用统计
-    await supabaseService.recordUsage(userId, 'edit', tokenUsed);
+    // 记录使用统计 (传递完整的 API 响应以进行详细的 token 分析)
+    try {
+      await supabaseService.recordUsage(userId, 'edit', result, 'google');
+      console.log('✅ 详细 token 统计已记录');
+    } catch (recordError) {
+      console.warn('⚠️ 详细统计记录失败，使用备用方案:', recordError.message);
+      // 备用方案：使用旧的统计方式
+      await supabaseService.recordUsageOld(userId, 'edit', tokenUsed);
+    }
 
     // 记录成功操作
     await supabaseService.logAction(userId, 'edit_success', {

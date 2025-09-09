@@ -277,10 +277,33 @@ const columns: DataTableColumns = [
   {
     title: 'Token 使用',
     key: 'token_used',
-    width: 120,
+    width: 150,
     render: (row: any) => {
-      const tokens = row.user_stats?.total_tokens || 0
-      return tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}K` : tokens.toString()
+      const inputTokens = row.user_stats?.input_tokens || 0
+      const outputTokens = row.user_stats?.output_tokens || 0
+      const totalTokens = row.user_stats?.total_tokens || (inputTokens + outputTokens) || 0
+      
+      const formatTokens = (tokens: number) => {
+        if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`
+        if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`
+        return tokens.toString()
+      }
+      
+      return h('div', { style: 'font-size: 12px; line-height: 1.2;' }, [
+        h('div', `总计: ${formatTokens(totalTokens)}`),
+        h('div', { style: 'color: #888;' }, `输入: ${formatTokens(inputTokens)} | 输出: ${formatTokens(outputTokens)}`)
+      ])
+    }
+  },
+  {
+    title: '成本 (USD)',
+    key: 'cost_usd',
+    width: 100,
+    render: (row: any) => {
+      const cost = row.user_stats?.total_cost_usd || 0
+      if (cost === 0) return '-'
+      if (cost < 0.001) return '<$0.001'
+      return `$${cost.toFixed(3)}`
     }
   },
   {
