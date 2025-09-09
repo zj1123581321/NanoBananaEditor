@@ -254,9 +254,29 @@ Only segment the specific object or region requested. The mask should be a binar
           projectId: request.projectId
         });
         
-        images = result.data.candidates[0].content.parts
-          .filter((part: any) => part.inlineData)
-          .map((part: any) => part.inlineData.data);
+        console.log('🔍 后端 API 返回的完整数据:', JSON.stringify(result, null, 2));
+        
+        // 检查数据结构并尝试多种解析方式
+        if (result.data && result.data.candidates && result.data.candidates[0] && result.data.candidates[0].content && result.data.candidates[0].content.parts) {
+          images = result.data.candidates[0].content.parts
+            .filter((part: any) => part.inlineData)
+            .map((part: any) => part.inlineData.data);
+          console.log('✅ 使用 result.data.candidates 路径解析到图片:', images.length, '张');
+        } else if (result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
+          // 尝试直接从 result 解析
+          images = result.candidates[0].content.parts
+            .filter((part: any) => part.inlineData)
+            .map((part: any) => part.inlineData.data);
+          console.log('✅ 使用 result.candidates 路径解析到图片:', images.length, '张');
+        } else if (result.images && Array.isArray(result.images)) {
+          // 如果后端直接返回 images 数组
+          images = result.images;
+          console.log('✅ 使用 result.images 路径解析到图片:', images.length, '张');
+        } else {
+          console.error('❌ 未能找到图片数据，尝试的路径都失败了');
+          console.error('可用的字段:', Object.keys(result));
+          images = [];
+        }
         
         return {
           images,
@@ -306,9 +326,27 @@ Only segment the specific object or region requested. The mask should be a binar
           projectId: request.projectId
         });
         
-        images = result.data.candidates[0].content.parts
-          .filter((part: any) => part.inlineData)
-          .map((part: any) => part.inlineData.data);
+        console.log('🔍 编辑 API 返回的完整数据:', JSON.stringify(result, null, 2));
+        
+        // 检查数据结构并尝试多种解析方式
+        if (result.data && result.data.candidates && result.data.candidates[0] && result.data.candidates[0].content && result.data.candidates[0].content.parts) {
+          images = result.data.candidates[0].content.parts
+            .filter((part: any) => part.inlineData)
+            .map((part: any) => part.inlineData.data);
+          console.log('✅ 使用 result.data.candidates 路径解析到编辑图片:', images.length, '张');
+        } else if (result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
+          images = result.candidates[0].content.parts
+            .filter((part: any) => part.inlineData)
+            .map((part: any) => part.inlineData.data);
+          console.log('✅ 使用 result.candidates 路径解析到编辑图片:', images.length, '张');
+        } else if (result.images && Array.isArray(result.images)) {
+          images = result.images;
+          console.log('✅ 使用 result.images 路径解析到编辑图片:', images.length, '张');
+        } else {
+          console.error('❌ 未能找到编辑图片数据，尝试的路径都失败了');
+          console.error('可用的字段:', Object.keys(result));
+          images = [];
+        }
         
         return {
           images,

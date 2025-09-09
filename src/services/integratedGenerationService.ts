@@ -66,6 +66,13 @@ class IntegratedGenerationService {
         seed: request.seed,
         projectId: request.projectId
       });
+      
+      // 检查生成结果是否有效
+      if (!result || !result.images || result.images.length === 0) {
+        console.error('❌ Gemini API 返回的图片数据为空:', result);
+        throw new Error('AI 模型未能生成图片，请检查网络连接和 API 配置');
+      }
+      
       console.log(`✅ AI 生成完成，获得 ${result.images.length} 张图片`);
 
       // 3. 保存图片到HTTP服务器
@@ -154,7 +161,7 @@ class IntegratedGenerationService {
       const deviceInfo = await deviceService.getDeviceInfo();
 
       // 2. 调用 Gemini 编辑图片
-      const base64Images = await this.geminiService.editImage({
+      const result = await geminiServiceExtended.editImage({
         instruction: request.instruction,
         originalImage: request.originalImage,
         referenceImages: request.referenceImages,
@@ -163,13 +170,19 @@ class IntegratedGenerationService {
         seed: request.seed
       });
 
+      // 检查编辑结果是否有效
+      if (!result || !result.images || result.images.length === 0) {
+        console.error('❌ Gemini API 返回的编辑图片数据为空:', result);
+        throw new Error('AI 模型未能编辑图片，请检查网络连接和 API 配置');
+      }
+
       // 3. 保存编辑结果
-      const imageData = base64Images.map((base64, index) => ({
-        data: `data:image/png;base64,${base64}`,
+      const imageData = result.images.map((base64, index) => ({
+        data: base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`,
         name: `edited_${timestamp}_${index + 1}.png`
       }));
 
-      const savedImages = await imageServerService.saveImages(imageData);
+      const savedImages = await imageServerServiceExtended.saveImages(imageData);
       const processingTime = Date.now() - startTime;
 
       // 4. 发送通知
@@ -268,7 +281,7 @@ ${error.message}
     };
 
     try {
-      status.imageServer = await imageServerService.healthCheck();
+      status.imageServer = await imageServerServiceExtended.healthCheck();
     } catch (error) {
       console.warn('图片服务器健康检查失败:', error);
     }
@@ -294,7 +307,7 @@ ${error.message}
    */
   getConfiguration() {
     return {
-      imageServer: imageServerService.getConfig(),
+      imageServer: imageServerServiceExtended.getConfig(),
       notification: notificationService.getConfig(),
       device: 'Device service configured'
     };
@@ -314,7 +327,7 @@ ${error.message}
 
       // 2. 测试图片服务器
       console.log('2. 测试图片服务器...');
-      const serverHealth = await imageServerService.healthCheck();
+      const serverHealth = await imageServerServiceExtended.healthCheck();
       console.log('✅ 图片服务器状态:', serverHealth ? '正常' : '异常');
 
       // 3. 测试通知服务

@@ -16,6 +16,21 @@ function estimateTokens(text) {
 }
 
 /**
+ * 构建图片编辑提示词
+ */
+function buildEditPrompt(params) {
+  const maskInstruction = params.maskData 
+    ? "\n\nIMPORTANT: Apply changes ONLY where the mask image shows white pixels (value 255). Leave all other areas completely unchanged. Respect the mask boundaries precisely and maintain seamless blending at the edges."
+    : "";
+
+  return `Edit this image according to the following instruction: ${params.instruction}
+
+Maintain the original image's lighting, perspective, and overall composition. Make the changes look natural and seamlessly integrated.${maskInstruction}
+
+Preserve image quality and ensure the edit looks professional and realistic.`;
+}
+
+/**
  * 调用 Gemini API
  */
 async function callGeminiAPI(params) {
@@ -25,30 +40,86 @@ async function callGeminiAPI(params) {
     throw new Error('Gemini API key not configured');
   }
 
-  // 这里应该集成实际的 Gemini API 调用逻辑
-  // 目前返回模拟数据，实际实现时需要替换
+  // 使用 Google GenAI 客户端
+  const { GoogleGenAI } = require('@google/genai');
+  const genAI = new GoogleGenAI({ apiKey });
+
   console.log('🤖 调用 Gemini API:', { 
     prompt: params.prompt?.substring(0, 50) + '...',
-    hasImages: params.images?.length > 0
+    hasImages: params.referenceImages?.length > 0
   });
 
-  // 模拟 API 响应
-  return {
-    candidates: [
-      {
-        content: {
-          parts: [
-            { text: `基于提示词"${params.prompt}"生成的图像` }
-          ]
-        }
+  try {
+    let contents = [];
+    
+    // 检查是图片生成还是图片编辑
+    if (params.instruction && params.imageData) {
+      // 图片编辑模式
+      contents = [
+        { text: buildEditPrompt(params) },
+        {
+          inlineData: {
+            mimeType: "image/png",
+            data: params.imageData,
+          },
+        },
+      ];
+      
+      // 添加参考图像
+      if (params.referenceImages && params.referenceImages.length > 0) {
+        params.referenceImages.forEach(image => {
+          contents.push({
+            inlineData: {
+              mimeType: "image/png",
+              data: image,
+            },
+          });
+        });
       }
-    ],
-    usageMetadata: {
-      promptTokenCount: estimateTokens(params.prompt || ''),
-      candidatesTokenCount: 50,
-      totalTokenCount: estimateTokens(params.prompt || '') + 50
+
+      // 添加遮罩图像
+      if (params.maskData) {
+        contents.push({
+          inlineData: {
+            mimeType: "image/png",
+            data: params.maskData,
+          },
+        });
+      }
+    } else {
+      // 图片生成模式
+      contents = [{ text: params.prompt }];
+      
+      // 添加参考图像
+      if (params.referenceImages && params.referenceImages.length > 0) {
+        params.referenceImages.forEach(image => {
+          contents.push({
+            inlineData: {
+              mimeType: "image/png",
+              data: image,
+            },
+          });
+        });
+      }
     }
-  };
+
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents,
+    });
+
+    return {
+      candidates: response.candidates,
+      usageMetadata: response.usageMetadata || {
+        promptTokenCount: estimateTokens(params.prompt || params.instruction || ''),
+        candidatesTokenCount: 50,
+        totalTokenCount: estimateTokens(params.prompt || params.instruction || '') + 50
+      }
+    };
+  } catch (error) {
+    console.error('❌ Gemini API 调用失败:', error);
+    throw new Error(`Gemini API 调用失败: ${error.message}`);
+  }
 }
 
 /**
@@ -79,7 +150,9 @@ router.post('/generate', authMiddleware, async (req, res) => {
     // 调用 Gemini API
     const result = await callGeminiAPI({
       prompt,
-      ...parameters
+      referenceImages: parameters.referenceImages,
+      temperature: parameters.temperature,
+      seed: parameters.seed
     });
 
     const processingTime = Date.now() - startTime;
