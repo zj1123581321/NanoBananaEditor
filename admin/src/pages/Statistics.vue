@@ -274,11 +274,7 @@ const userActivityOption = computed(() => ({
       type: 'bar',
       data: userActivityData.value.map(item => item.value),
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: '#83bff6' },
-          { offset: 0.5, color: '#188df0' },
-          { offset: 1, color: '#188df0' }
-        ])
+        color: '#188df0'
       }
     }
   ]
@@ -364,17 +360,17 @@ const loadStatistics = async () => {
     ])
     
     if (usageResponse.success) {
-      usageChartData.value = usageResponse.data.chartData || []
-      userRankingData.value = (usageResponse.data.userRanking || []).map((user: any, index: number) => ({
+      usageChartData.value = usageResponse.data?.chartData || []
+      userRankingData.value = (usageResponse.data?.userRanking || []).map((user: any, index: number) => ({
         ...user,
         rank: index + 1,
         lastActive: user.lastActive ? dayjs(user.lastActive).format('MM-DD HH:mm') : '-'
       }))
-      userActivityData.value = usageResponse.data.userActivity || []
+      userActivityData.value = usageResponse.data?.userActivity || []
     }
     
     if (tokenResponse.success) {
-      tokenDistributionData.value = tokenResponse.data.distribution || []
+      tokenDistributionData.value = tokenResponse.data?.distribution || []
     }
   } catch (error) {
     console.error('Load statistics failed:', error)
@@ -401,16 +397,16 @@ const loadDetailStats = async () => {
     const response = await adminApi.getLogs(params)
     
     if (response.success) {
-      detailData.value = (response.data.logs || []).map((log: any) => ({
-        date: dayjs(log.created_at).format('MM-DD'),
-        userEmail: log.user_email || '-',
-        tokens: log.tokens_used || 0,
+      detailData.value = (response.data?.logs || []).map((log: any) => ({
+        date: dayjs(log.createdAt || log.created_at).format('MM-DD'),
+        userEmail: log.userName || log.user_email || '-',
+        tokens: log.tokens_used || log.details?.tokens || 0,
         generations: log.action === 'generate' ? 1 : 0,
         edits: log.action === 'edit' ? 1 : 0,
-        createdAt: dayjs(log.created_at).format('HH:mm:ss')
+        createdAt: dayjs(log.createdAt || log.created_at).format('HH:mm:ss')
       }))
       
-      detailPagination.itemCount = response.data.total || 0
+      detailPagination.itemCount = response.data?.total || 0
     }
   } catch (error) {
     console.error('Load detail stats failed:', error)

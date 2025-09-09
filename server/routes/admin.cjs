@@ -13,11 +13,12 @@ const router = express.Router();
  */
 router.get('/users', adminMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 50 } = req.query;
+    const { page = 1, limit = 50, search = '' } = req.query;
     
     const result = await supabaseService.getUsers(
       parseInt(page),
-      parseInt(limit)
+      parseInt(limit),
+      search
     );
 
     res.json({
@@ -349,10 +350,14 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
       .toISOString().split('T')[0];
     const endDate = new Date().toISOString().split('T')[0];
 
+    // 获取基础统计数据
     const stats = await supabaseService.getUsageStats(startDate, endDate);
-
+    
+    // 获取用户总数
+    const { total: totalUsers } = await supabaseService.getUsers(1, 1);
+    
     // 计算汇总统计
-    const overview = stats.reduce((acc, stat) => {
+    const totals = stats.reduce((acc, stat) => {
       acc.totalTokens += stat.token_consumed || 0;
       acc.totalRequests += stat.request_count || 0;
       acc.totalGenerations += stat.generation_count || 0;
@@ -365,50 +370,73 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
       totalEdits: 0
     });
 
-    // 按用户统计
-    const userStats = stats.reduce((acc, stat) => {
-      const username = stat.ai_image_editor_user_profiles?.username || 'Unknown';
-      if (!acc[username]) {
-        acc[username] = {
-          username,
-          tokens: 0,
-          requests: 0,
-          generations: 0,
-          edits: 0
-        };
-      }
-      acc[username].tokens += stat.token_consumed || 0;
-      acc[username].requests += stat.request_count || 0;
-      acc[username].generations += stat.generation_count || 0;
-      acc[username].edits += stat.edit_count || 0;
-      return acc;
-    }, {});
+    // 计算活跃用户数（最近7天内有操作的用户）
+    const activeDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString().split('T')[0];
+    const recentStats = await supabaseService.getUsageStats(activeDate, endDate);
+    const activeUsers = new Set(recentStats.map(stat => stat.user_id)).size;
 
-    // 按日期统计
-    const dailyStats = stats.reduce((acc, stat) => {
+    // 生成使用趋势数据（前端期望的格式）
+    const usageTrendMap = {};
+    stats.forEach(stat => {
       const date = stat.date;
-      if (!acc[date]) {
-        acc[date] = {
+      if (!usageTrendMap[date]) {
+        usageTrendMap[date] = {
           date,
-          tokens: 0,
-          requests: 0,
           generations: 0,
-          edits: 0
+          tokens: 0
         };
       }
-      acc[date].tokens += stat.token_consumed || 0;
-      acc[date].requests += stat.request_count || 0;
-      acc[date].generations += stat.generation_count || 0;
-      acc[date].edits += stat.edit_count || 0;
-      return acc;
-    }, {});
+      usageTrendMap[date].generations += stat.generation_count || 0;
+      usageTrendMap[date].tokens += stat.token_consumed || 0;
+    });
+    
+    const usageTrend = Object.values(usageTrendMap)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-14); // 最近14天
 
+    // Token使用分布（按用户）
+    const tokenDistributionMap = {};
+    stats.forEach(stat => {
+      const username = stat.ai_image_editor_user_profiles?.username || 'Unknown';
+      if (!tokenDistributionMap[username]) {
+        tokenDistributionMap[username] = {
+          name: username,
+          value: 0
+        };
+      }
+      tokenDistributionMap[username].value += stat.token_consumed || 0;
+    });
+    
+    const tokenDistribution = Object.values(tokenDistributionMap)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10
+
+    // 最近活动（模拟数据，可以从action_logs表获取）
+    const recentActivities = [
+      {
+        id: 1,
+        userName: 'admin',
+        action: 'generate',
+        description: '生成了新图片',
+        createdAt: new Date().toISOString(),
+        userAvatar: null
+      }
+    ];
+
+    // 按前端期望的格式返回数据
     res.json({
       success: true,
       data: {
-        overview,
-        userStats: Object.values(userStats),
-        dailyStats: Object.values(dailyStats).sort((a, b) => b.date.localeCompare(a.date)),
+        stats: {
+          totalUsers,
+          totalGenerations: totals.totalGenerations,
+          totalTokens: totals.totalTokens,
+          activeUsers
+        },
+        usageTrend,
+        tokenDistribution,
+        recentActivities,
         period: {
           startDate,
           endDate,
@@ -485,18 +513,64 @@ router.get('/stats/usage', adminMiddleware, async (req, res) => {
           date: key,
           generations: 0,
           tokens: 0,
-          requests: 0
+          requests: 0,
+          activeUsers: new Set()
         };
       }
       acc[key].generations += stat.generation_count || 0;
       acc[key].tokens += stat.token_consumed || 0;
       acc[key].requests += stat.request_count || 0;
+      acc[key].activeUsers.add(stat.user_id);
       return acc;
     }, {});
 
+    // 转换为前端期望的格式
+    const chartData = Object.values(groupedStats).map(item => ({
+      date: item.date,
+      generations: item.generations,
+      tokens: item.tokens,
+      activeUsers: item.activeUsers.size
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    // 生成用户排行数据
+    const userStats = {};
+    stats.forEach(stat => {
+      const username = stat.ai_image_editor_user_profiles?.username || 'Unknown';
+      if (!userStats[username]) {
+        userStats[username] = {
+          email: username,
+          tokens: 0,
+          generations: 0,
+          lastActive: stat.date
+        };
+      }
+      userStats[username].tokens += stat.token_consumed || 0;
+      userStats[username].generations += stat.generation_count || 0;
+      if (stat.date > userStats[username].lastActive) {
+        userStats[username].lastActive = stat.date;
+      }
+    });
+
+    const userRanking = Object.values(userStats)
+      .sort((a, b) => b.tokens - a.tokens)
+      .slice(0, 10);
+
+    // 用户活跃度数据
+    const userActivity = Object.values(userStats)
+      .map(user => ({
+        name: user.email,
+        value: user.generations
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+
     res.json({
       success: true,
-      data: Object.values(groupedStats).sort((a, b) => a.date.localeCompare(b.date))
+      data: {
+        chartData,
+        userRanking,
+        userActivity
+      }
     });
   } catch (error) {
     console.error('❌ 获取使用统计失败:', error);
@@ -529,9 +603,17 @@ router.get('/stats/tokens', adminMiddleware, async (req, res) => {
       return acc;
     }, {});
 
+    // 转换为前端期望的饼图数据格式
+    const distribution = Object.values(tokensByUser)
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10 用户
+
     res.json({
       success: true,
-      data: Object.values(tokensByUser)
+      data: {
+        distribution
+      }
     });
   } catch (error) {
     console.error('❌ 获取Token统计失败:', error);

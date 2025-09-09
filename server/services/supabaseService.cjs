@@ -233,7 +233,7 @@ class SupabaseService {
   /**
    * 获取用户列表 (管理员功能)
    */
-  async getUsers(page = 1, limit = 50) {
+  async getUsers(page = 1, limit = 50, search = '') {
     if (!this.isMultiUserMode() || !this.supabase) {
       return { users: [], total: 0 };
     }
@@ -241,9 +241,17 @@ class SupabaseService {
     try {
       const offset = (page - 1) * limit;
       
-      const { data, error, count } = await this.supabase
+      // 先获取用户 profiles
+      let query = this.supabase
         .from('ai_image_editor_user_profiles')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' });
+      
+      // 添加搜索条件（仅在 username 中搜索）
+      if (search) {
+        query = query.ilike('username', `%${search}%`);
+      }
+      
+      const { data: profiles, error, count } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -252,10 +260,95 @@ class SupabaseService {
         return { users: [], total: 0 };
       }
 
-      return { users: data || [], total: count || 0 };
+      // 获取对应的 auth.users 信息
+      const userIds = profiles?.map(p => p.id) || [];
+      let authUsers = [];
+      
+      if (userIds.length > 0) {
+        try {
+          const { data: authData } = await this.supabase.auth.admin.listUsers();
+          authUsers = authData.users.filter(user => userIds.includes(user.id));
+        } catch (authError) {
+          console.warn('⚠️ 获取 Auth 用户信息失败:', authError);
+        }
+      }
+
+      // 合并 profile 和 auth 信息，并获取统计数据
+      const usersWithStats = await Promise.all((profiles || []).map(async (profile) => {
+        const authUser = authUsers.find(u => u.id === profile.id);
+        const userStats = await this.getUserStats(profile.id);
+        
+        return {
+          ...profile,
+          // 从 auth.users 中提取信息到顶层，以匹配前端期望
+          email: authUser?.email || `${profile.username}@unknown`,
+          created_at: authUser?.created_at || profile.created_at,
+          last_sign_in_at: authUser?.last_sign_in_at,
+          raw_user_meta_data: authUser?.raw_user_meta_data,
+          // 添加用户统计信息
+          user_stats: userStats
+        };
+      }));
+
+      return { users: usersWithStats || [], total: count || 0 };
     } catch (error) {
       console.error('❌ 获取用户列表异常:', error);
       return { users: [], total: 0 };
+    }
+  }
+
+  /**
+   * 获取单个用户统计信息
+   */
+  async getUserStats(userId) {
+    if (!this.isMultiUserMode() || !this.supabase) {
+      return {
+        generation_count: 0,
+        total_tokens: 0,
+        edit_count: 0,
+        request_count: 0
+      };
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('ai_image_editor_usage_stats')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('❌ 获取用户统计失败:', error);
+        return {
+          generation_count: 0,
+          total_tokens: 0,
+          edit_count: 0,
+          request_count: 0
+        };
+      }
+
+      // 汇总所有统计数据
+      const stats = (data || []).reduce((acc, stat) => {
+        acc.generation_count += stat.generation_count || 0;
+        acc.total_tokens += stat.token_consumed || 0;
+        acc.edit_count += stat.edit_count || 0;
+        acc.request_count += stat.request_count || 0;
+        return acc;
+      }, {
+        generation_count: 0,
+        total_tokens: 0,
+        edit_count: 0,
+        request_count: 0
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('❌ 获取用户统计异常:', error);
+      return {
+        generation_count: 0,
+        total_tokens: 0,
+        edit_count: 0,
+        request_count: 0
+      };
     }
   }
 
