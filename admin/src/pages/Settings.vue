@@ -318,11 +318,23 @@ const checkSystemHealth = async () => {
     const response = await adminApi.healthCheck()
     
     if (response.success) {
+      // 根据后端实际返回的health数据结构进行映射
+      const features = response.data.features || {};
+      const isHealthy = response.data.mode === 'multi-user' || response.data.mode === 'standalone';
+      
       systemStatus.value = {
-        healthy: response.data.healthy,
-        database: response.data.database,
-        imageServer: response.data.imageServer,
-        notification: response.data.notification
+        healthy: isHealthy,
+        database: features.supabase || false,
+        imageServer: features.imageServer || false,
+        notification: features.notifications || false
+      }
+      
+      // 更新系统信息
+      if (response.data.mode) {
+        systemInfo.value.mode = response.data.mode === 'multi-user' ? 'production' : 'development'
+      }
+      if (response.data.timestamp) {
+        systemInfo.value.deployTime = dayjs(response.data.timestamp).format('YYYY-MM-DD HH:mm:ss')
       }
       
       message.success('健康检查完成')
