@@ -1,0 +1,113 @@
+# ============================================
+# Nano Banana AI Image Editor - 完整统一架构 Dockerfile
+# 
+# 使用场景：生产环境和 CI/CD 部署
+# 要求：包含完整构建过程，需要网络环境良好
+# 优点：完全自包含，适合生产环境
+# ============================================
+
+FROM node:20-alpine as builder
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制项目文件
+COPY package*.json ./
+COPY admin/package*.json ./admin/
+
+# 安装依赖 (构建阶段需要开发依赖)
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm ci --no-audit --no-fund --maxsockets 1
+RUN cd admin && \
+    npm config set registry https://registry.npmmirror.com/ && \
+    npm ci --no-audit --no-fund --maxsockets 1
+
+# 复制源码
+COPY . .
+
+# 构建前端应用 - 强制多用户模式
+# 仅固定 VITE_APP_MODE，其他 Vite 变量从项目 .env 读取
+ARG VITE_APP_MODE=multi-user
+ENV VITE_APP_MODE=$VITE_APP_MODE
+ENV NODE_ENV=production
+
+# 调试信息
+RUN echo "Node.js 版本: $(node --version)" && \
+    echo "npm 版本: $(npm --version)" && \
+    echo "环境变量 VITE_APP_MODE: $VITE_APP_MODE" && \
+    echo "当前目录内容:" && ls -la
+
+# 若未提供 .env，则尝试使用 .env.docker；同时在 multi-user 下做强校验
+RUN if [ ! -f .env ] && [ -f .env.docker ]; then \
+      echo "⚠️ 未找到 .env，使用 .env.docker 作为构建配置"; \
+      cp .env.docker .env; \
+    fi && \
+    if [ "$VITE_APP_MODE" = "multi-user" ]; then \
+      if [ ! -f .env ]; then \
+        echo "❌ multi-user 构建需要项目根目录提供 .env (或 .env.docker)"; exit 1; \
+      fi; \
+      grep -q "^VITE_SUPABASE_URL=" .env || { echo "❌ 缺少 VITE_SUPABASE_URL (multi-user 必需)"; exit 1; }; \
+      grep -q "^VITE_SUPABASE_ANON_KEY=" .env || { echo "❌ 缺少 VITE_SUPABASE_ANON_KEY (multi-user 必需)"; exit 1; }; \
+    fi
+
+# 构建主前端
+RUN npm run build
+
+# 构建管理后台
+RUN npm run build:admin
+
+# 验证构建结果
+RUN ls -la dist/ && ls -la admin/dist/
+
+# ============================================
+# 生产阶段
+# ============================================
+FROM node:20-alpine as production
+
+# 安装必要的系统包
+RUN apk add --no-cache \
+    curl \
+    dumb-init \
+    && rm -rf /var/cache/apk/*
+
+# 创建非root用户
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appuser -u 1001
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制package.json和安装生产依赖
+COPY package*.json ./
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm ci --omit=dev --no-audit --no-fund --maxsockets 1 && \
+    npm cache clean --force
+
+# 复制后端代码
+COPY server/ ./server/
+
+# 从builder阶段复制构建好的前端文件
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/admin/dist ./admin/dist
+
+# 创建必要目录
+RUN mkdir -p generated_images logs uploads && \
+    chown -R appuser:nodejs /app
+
+# 切换到非root用户
+USER appuser
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV IMAGE_SERVER_PORT=3002
+ENV IMAGE_SERVER_HOST=0.0.0.0
+
+# 暴露端口
+EXPOSE 3002
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3002/health || exit 1
+
+# 启动应用
+CMD ["dumb-init", "node", "server/imageServerExtended.cjs"]

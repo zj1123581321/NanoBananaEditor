@@ -1,44 +1,24 @@
 # Nano Banana AI Image Editor - Docker Compose 配置
-# 支持单用户和多用户模式的灵活部署
+# 统一架构：单一后端+多前端路由
 
-version: '3.8'
+
 
 services:
-  # 前端应用
-  frontend:
+  # 统一服务 (后端API + 前端静态文件 + 管理后台)
+  ai_image_editor:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.frontend
+      dockerfile: docker/Dockerfile.full.unified
       args:
-        - VITE_APP_MODE=${VITE_APP_MODE:-standalone}
+        # 仅固定应用模式为多用户；其他变量从 .env 读取
+        VITE_APP_MODE: ${VITE_APP_MODE:-multi-user}
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
-    environment:
-      - NODE_ENV=production
-    depends_on:
-      - backend
-    networks:
-      - app-network
-    restart: unless-stopped
-    profiles:
-      - all
-      - standalone
-      - multi-user
-
-  # 后端服务 (图片服务器 + API)
-  backend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.backend
-    ports:
-      - "${IMAGE_SERVER_PORT:-3002}:3002"
-    environment:
-      - NODE_ENV=production
-      - IMAGE_SERVER_PORT=${IMAGE_SERVER_PORT:-3002}
-      - IMAGE_SERVER_HOST=0.0.0.0
-      - CORS_ORIGIN=http://frontend
+      - "${APP_PORT:-3002}:3002"
     env_file:
       - ../.env
+    environment:
+      # 强制运行时也为多用户
+      VITE_APP_MODE: multi-user
     volumes:
       - generated_images:/app/generated_images
       - app_logs:/app/logs
@@ -51,33 +31,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    profiles:
-      - all
-      - standalone
-      - multi-user
+    # 默认启用 multi-user 模式（无需指定 profile）
 
-  # 管理后台 (仅多用户模式)
-  admin:
-    build:
-      context: ../admin
-      dockerfile: Dockerfile
-    ports:
-      - "${ADMIN_PORT:-3003}:80"
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_BACKEND_URL=http://backend:3002
-    env_file:
-      - ../.env
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - app-network
-    restart: unless-stopped
-    profiles:
-      - multi-user
-
-  # Nginx 反向代理 (生产环境可选)
+  # Nginx 反向代理 (生产环境可选，用于SSL终端和负载均衡)
   nginx:
     image: nginx:alpine
     ports:
@@ -87,8 +43,7 @@ services:
       - ../config/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      - frontend
-      - backend
+      - ai_image_editor
     networks:
       - app-network
     restart: unless-stopped
@@ -107,17 +62,25 @@ volumes:
     name: nano-banana-logs
 
 # ============================================
-# 部署命令示例:
+# 统一架构部署命令示例:
+# 
+# 默认多用户模式:
+#   docker-compose up -d
 # 
 # 单用户模式:
-#   docker-compose --profile standalone up -d
+#   VITE_APP_MODE=standalone docker-compose up -d
 # 
-# 多用户模式:
-#   docker-compose --profile multi-user up -d
-# 
-# 生产环境 (带 Nginx):
+# 生产环境 (带 Nginx SSL):
 #   docker-compose --profile production up -d
 #
-# 完整部署:
-#   docker-compose --profile all up -d
+# ============================================
+# 
+# 🚀 统一架构优势:
+# - 仅占用1个端口 (默认3002)
+# - 单容器部署，资源消耗更低
+# - 简化的网络配置
+# - 主前端: http://localhost:3002/
+# - 管理后台: http://localhost:3002/admin/
+# - API: http://localhost:3002/api/
+# 
 # ============================================

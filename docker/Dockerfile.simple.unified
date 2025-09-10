@@ -1,0 +1,54 @@
+# ============================================
+# Nano Banana AI Image Editor - 简化统一架构 Dockerfile
+# 
+# 使用场景：本地开发和快速部署
+# 要求：需要先运行 npm run build:all 构建前端文件
+# 优点：构建快速，体积小
+# ============================================
+
+FROM node:20-alpine
+
+# 安装必要的系统包
+RUN apk add --no-cache curl dumb-init
+
+# 创建非root用户
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appuser -u 1001
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制package.json和安装生产依赖
+COPY package*.json ./
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm ci --omit=dev --no-audit --no-fund && \
+    npm cache clean --force
+
+# 复制后端代码
+COPY server/ ./server/
+
+# 复制已构建的前端文件
+COPY dist/ ./dist/
+COPY admin/dist/ ./admin/dist/
+
+# 创建必要目录并设置权限
+RUN mkdir -p generated_images logs uploads && \
+    chown -R appuser:nodejs /app
+
+# 切换到非root用户
+USER appuser
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV IMAGE_SERVER_PORT=3002
+ENV IMAGE_SERVER_HOST=0.0.0.0
+
+# 暴露端口
+EXPOSE 3002
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3002/health || exit 1
+
+# 启动应用
+CMD ["dumb-init", "node", "server/imageServerExtended.cjs"]
