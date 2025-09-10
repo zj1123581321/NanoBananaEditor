@@ -22,7 +22,16 @@ class AdminApiService {
   private token: string | null = null
   
   constructor() {
-    this.baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002'
+    // 在生产环境下，如果没有明确指定VITE_BACKEND_URL，使用相对路径
+    // 这样管理后台可以向同一个服务器发送API请求
+    if (import.meta.env.PROD && !import.meta.env.VITE_BACKEND_URL) {
+      // 由于管理后台在 /admin/ 路径下，API请求需要指向根路径
+      this.baseUrl = window.location.origin
+    } else {
+      this.baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002'
+    }
+    
+    console.log(`🔧 管理后台 API Base URL: ${this.baseUrl}`)
   }
   
   /**

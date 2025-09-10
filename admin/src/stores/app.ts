@@ -15,8 +15,16 @@ export const useAppStore = defineStore('app', () => {
   const isLoading = ref(false)
   
   // 系统配置
+  const getBackendUrl = () => {
+    // 在生产环境下，如果没有明确指定VITE_BACKEND_URL，使用当前域名
+    if (import.meta.env.PROD && !import.meta.env.VITE_BACKEND_URL) {
+      return window.location.origin
+    }
+    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002'
+  }
+  
   const config = ref({
-    backendUrl: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002',
+    backendUrl: getBackendUrl(),
     appName: 'Nano Banana AI Image Editor',
     version: '1.0.0'
   })

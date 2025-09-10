@@ -1,0 +1,75 @@
+# Nano Banana AI Image Editor - 生产环境 Docker Compose 配置
+# 适用于使用预构建镜像的云端部署
+
+services:
+  # 统一服务 (使用预构建镜像)
+  ai_image_editor:
+    image: docker-ai_image_editor:latest
+    ports:
+      - "${APP_PORT:-3002}:3002"
+    env_file:
+      - ./.env.production
+    environment:
+      # 强制运行时为多用户模式
+      VITE_APP_MODE: multi-user
+      NODE_ENV: production
+    volumes:
+      - generated_images:/app/generated_images
+      - app_logs:/app/logs
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx 反向代理 (可选，用于SSL终端和负载均衡)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - ai_image_editor
+    networks:
+      - app-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+networks:
+  app-network:
+    driver: bridge
+    name: nano-banana-network
+
+volumes:
+  generated_images:
+    name: nano-banana-images
+  app_logs:
+    name: nano-banana-logs
+
+# ============================================
+# 生产环境部署步骤 (确保加载最新镜像):
+# 
+# 方法 1: 使用重新加载脚本 (推荐)
+#    ./reload-image.sh nano-banana-editor-YYYYMMDD-HHMM-commit.tar
+#    docker-compose -f docker-compose.production.yml up -d
+#
+# 方法 2: 手动操作
+#    docker-compose down
+#    docker rmi docker-ai_image_editor:latest || true
+#    docker load < nano-banana-editor-YYYYMMDD-HHMM-commit.tar
+#    docker images | grep docker-ai_image_editor  # 验证加载
+#    cp .env.production.example .env.production   # 首次部署
+#    docker-compose -f docker-compose.production.yml up -d
+# 
+# 带 Nginx SSL 的生产环境:
+#    docker-compose -f docker-compose.production.yml --profile production up -d
+#
+# ============================================

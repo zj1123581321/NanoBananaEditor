@@ -27,7 +27,7 @@ const HOST = process.env.IMAGE_SERVER_HOST || '0.0.0.0';
 const IMAGES_DIR = path.join(__dirname, '../generated_images');
 const APP_MODE = process.env.VITE_APP_MODE || 'standalone';
 
-// 中间件配置
+// 中间件配置 - 支持从环境变量读取CORS配置
 const allowedOrigins = [
   'http://localhost:3000',  // 生产前端
   'http://localhost:3002',  // 统一架构服务器自身
@@ -46,16 +46,34 @@ if (process.env.NODE_ENV === 'development' || APP_MODE === 'multi-user') {
   );
 }
 
+// 从环境变量添加额外的允许源
+if (process.env.CORS_ADDITIONAL_ORIGINS) {
+  const additionalOrigins = process.env.CORS_ADDITIONAL_ORIGINS.split(',').map(origin => origin.trim());
+  allowedOrigins.push(...additionalOrigins);
+  console.log(`📋 从环境变量添加了额外的CORS源: ${additionalOrigins.join(', ')}`);
+}
+
+// 检查是否允许所有源
+const allowAllOrigins = process.env.CORS_ORIGIN === '*' || allowedOrigins.includes('*');
+
 app.use(cors({
   origin: function (origin, callback) {
     // 允许无 origin 的请求（如移动应用、Postman等）
     if (!origin) return callback(null, true);
     
+    // 如果配置为允许所有源
+    if (allowAllOrigins) {
+      console.log(`✅ CORS允许来自 ${origin} 的请求 (允许所有源模式)`);
+      return callback(null, true);
+    }
+    
     // 检查是否在允许列表中
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS允许来自 ${origin} 的请求`);
       callback(null, true);
     } else {
       console.warn(`🚫 CORS阻止了来自 ${origin} 的请求`);
+      console.warn(`📋 当前允许的源列表: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
