@@ -15,7 +15,7 @@ services:
     ports:
       - "${APP_PORT:-3002}:3002"
     env_file:
-      - ../.env
+      - ../.env.docker
     environment:
       # 强制运行时也为多用户
       VITE_APP_MODE: multi-user
