@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.docker
 
 generated_images
 docs/ref_codes
+docker/*.tar
