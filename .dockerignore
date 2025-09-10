@@ -1,0 +1,69 @@
+# ============================================
+# Docker 构建忽略文件 - 统一架构版本
+# ============================================
+
+# 开发相关文件
+.git/
+.gitignore
+README.md
+docs/
+.vscode/
+.idea/
+
+# 依赖和构建缓存
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# 生产构建文件
+# 注意：使用简化Dockerfile时需要包含这些文件
+
+# 日志文件
+logs/
+*.log
+
+# 环境变量文件
+# 注意：为保证 Docker 构建期可获取 Vite 变量，此处允许包含 .env 进构建上下文
+# 构建产物不包含 .env（多阶段构建仅复制 dist 与 server），但请仍注意本机 Docker 构建缓存安全
+# 如需完全隔离，可改用 .env.docker 并在 Dockerfile 中复制为 .env
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE 文件
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# 测试覆盖率
+coverage/
+.nyc_output
+.coverage
+
+# Docker 相关
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 生成的图片和上传文件(通过volume挂载)
+generated_images/
+uploads/
+
+# 其他项目文件
+scripts/
+tests/
+*.md
+LICENSE
