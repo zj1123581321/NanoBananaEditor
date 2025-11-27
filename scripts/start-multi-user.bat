@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 echo 启动 Nano Banana 多用户模式...
 
 REM 首先清理可能残留的进程

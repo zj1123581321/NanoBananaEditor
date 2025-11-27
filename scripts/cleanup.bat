@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 echo 正在清理 Nano Banana 相关进程...
 
 REM 强制终止所有 node.exe 进程
