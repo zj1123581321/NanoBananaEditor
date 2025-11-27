@@ -1,0 +1,67 @@
+# ============================================
+# Nano Banana AI Image Editor - 开发环境配置
+#
+# 使用方式：
+#   cd docker
+#   docker-compose -f docker-compose.dev.yml up -d --build
+#
+# 说明：
+#   - 本地构建镜像，适合开发调试
+#   - 需要项目根目录的 .env 文件（或 .env.docker）
+# ============================================
+
+services:
+  ai_image_editor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        VITE_APP_MODE: ${VITE_APP_MODE:-multi-user}
+    image: nano-banana-editor:dev
+    container_name: nano-banana-dev
+    ports:
+      - "${APP_PORT:-3002}:3002"
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: development
+      VITE_APP_MODE: ${VITE_APP_MODE:-multi-user}
+    volumes:
+      - generated_images:/app/generated_images
+      - app_logs:/app/logs
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  app-network:
+    driver: bridge
+    name: nano-banana-dev-network
+
+volumes:
+  generated_images:
+    name: nano-banana-dev-images
+  app_logs:
+    name: nano-banana-dev-logs
+
+# ============================================
+# 常用命令：
+#
+# 构建并启动：
+#   docker-compose -f docker-compose.dev.yml up -d --build
+#
+# 查看日志：
+#   docker-compose -f docker-compose.dev.yml logs -f
+#
+# 停止服务：
+#   docker-compose -f docker-compose.dev.yml down
+#
+# 重建（无缓存）：
+#   docker-compose -f docker-compose.dev.yml build --no-cache
+# ============================================

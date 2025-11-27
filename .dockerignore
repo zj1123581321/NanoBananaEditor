@@ -1,69 +1,85 @@
 # ============================================
-# Docker 构建忽略文件 - 统一架构版本
+# Docker 构建忽略文件
+# 目的：减少构建上下文大小，加快构建速度
 # ============================================
 
-# 开发相关文件
+# === 版本控制 ===
 .git/
 .gitignore
-README.md
-docs/
-.vscode/
-.idea/
+.gitattributes
 
-# 依赖和构建缓存
+# === 依赖目录 ===
 node_modules/
+admin/node_modules/
+
+# === 构建产物（由 Docker 内部构建） ===
+dist/
+admin/dist/
+build/
+
+# === 开发工具和缓存 ===
+.npm
+.yarn
+.pnpm-store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.npm
-.yarn
 
-# 生产构建文件
-# 注意：使用简化Dockerfile时需要包含这些文件
+# === 测试和覆盖率 ===
+tests/
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
 
-# 日志文件
-logs/
-*.log
-
-# 环境变量文件
-# 注意：为保证 Docker 构建期可获取 Vite 变量，此处允许包含 .env 进构建上下文
-# 构建产物不包含 .env（多阶段构建仅复制 dist 与 server），但请仍注意本机 Docker 构建缓存安全
-# 如需完全隔离，可改用 .env.docker 并在 Dockerfile 中复制为 .env
-
-# 临时文件
-tmp/
-temp/
-.tmp/
-
-# 操作系统文件
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-
-# IDE 文件
+# === IDE 和编辑器 ===
 .vscode/
 .idea/
 *.sublime-workspace
 *.sublime-project
+*.swp
+*.swo
+*~
 
-# 测试覆盖率
-coverage/
-.nyc_output
-.coverage
+# === 操作系统文件 ===
+.DS_Store
+Thumbs.db
+Desktop.ini
 
-# Docker 相关
+# === 文档 ===
+docs/
+*.md
+!README.md
+LICENSE
+
+# === Docker 相关（避免递归） ===
+docker/output/
+docker/*.tar
 Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# 生成的图片和上传文件(通过volume挂载)
+# === 临时文件 ===
+tmp/
+temp/
+.tmp/
+*.log
+logs/
+
+# === 运行时数据（通过 volume 挂载） ===
 generated_images/
 uploads/
 
-# 其他项目文件
+# === 环境配置（保留 .env 用于构建时 Vite 变量） ===
+.env.local
+.env.*.local
+.env.dev.example
+.env.prod.example
+
+# === 脚本目录 ===
 scripts/
-tests/
-*.md
-LICENSE
+
+# === Supabase 本地配置 ===
+supabase/.temp/
