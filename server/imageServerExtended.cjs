@@ -32,7 +32,6 @@ const allowedOrigins = [
   'http://localhost:3000',  // 生产前端
   'http://localhost:3002',  // 统一架构服务器自身
   'http://localhost:5173',  // 开发前端 (Vite)
-  'http://localhost:5174',  // 备用前端端口
   'http://localhost:3003',  // 管理后台开发服务器
 ];
 

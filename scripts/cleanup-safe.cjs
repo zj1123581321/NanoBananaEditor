@@ -9,7 +9,7 @@ const { exec } = require('child_process');
 const os = require('os');
 
 const isWindows = os.platform() === 'win32';
-const NANO_BANANA_PORTS = [3002, 3003, 5173, 5174];
+const NANO_BANANA_PORTS = [3002, 3003, 5173];
 
 console.log('🧹 开始安全清理 Nano Banana 端口...');
 

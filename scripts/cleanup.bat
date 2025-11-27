@@ -26,10 +26,5 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173 " ^| findstr "LISTENIN
     taskkill /F /PID %%a >nul 2>&1
 )
 
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5174 " ^| findstr "LISTENING"') do (
-    echo 终止占用端口 5174 的进程 PID: %%a
-    taskkill /F /PID %%a >nul 2>&1
-)
-
 echo 清理完成！
 timeout /t 1 /nobreak >nul

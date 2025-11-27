@@ -9,7 +9,7 @@ const { spawn, exec } = require('child_process');
 const os = require('os');
 
 const isWindows = os.platform() === 'win32';
-const PORTS = [3002, 3003, 5173, 5174];
+const PORTS = [3002, 3003, 5173];
 
 console.log('🧹 开始清理 Nano Banana 相关进程...');
 
