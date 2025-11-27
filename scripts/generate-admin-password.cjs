@@ -27,7 +27,9 @@ async function generatePasswordHash() {
       
       console.log('\n✅ 密码哈希生成成功!');
       console.log('📋 请将以下内容添加到 .env 文件中:\n');
-      console.log(`ADMIN_PASSWORD_HASH=${hash}`);
+      console.log(`ADMIN_PASSWORD_HASH='${hash}'`);
+      console.log('\n⚠️  重要: Linux/Unix 服务器必须使用单引号包裹哈希值！');
+      console.log('   否则 $ 符号会被 shell 解析为变量，导致 401 认证失败。');
       console.log('\n🔍 验证信息:');
       console.log(`- 原始密码: ${password}`);
       console.log(`- 哈希值: ${hash}`);

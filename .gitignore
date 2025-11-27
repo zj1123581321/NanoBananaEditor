@@ -28,3 +28,4 @@ dist-ssr
 generated_images
 docs/ref_codes
 docker/*.tar
+docker/output

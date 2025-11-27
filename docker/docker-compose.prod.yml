@@ -18,7 +18,7 @@ services:
     ports:
       - "${APP_PORT:-3002}:3002"
     env_file:
-      - .env.prod
+      - .env
     environment:
       NODE_ENV: production
       VITE_APP_MODE: ${VITE_APP_MODE:-multi-user}
@@ -29,7 +29,7 @@ services:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3002/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
