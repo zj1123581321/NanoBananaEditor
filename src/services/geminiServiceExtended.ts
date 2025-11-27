@@ -76,8 +76,16 @@ class GeminiServiceExtended {
    * 调用后端 API
    */
   private async callBackendAPI(endpoint: string, data: any): Promise<any> {
-    const url = `${getBackendUrl()}/api/gemini${endpoint}`;
+    const backendUrl = getBackendUrl();
+    const url = `${backendUrl}/api/gemini${endpoint}`;
     const headers = await this.getAuthHeaders();
+
+    console.log('🚀 Gemini API 请求详情:', {
+      backendUrl,
+      fullUrl: url,
+      endpoint,
+      method: 'POST'
+    });
 
     const response = await fetch(url, {
       method: 'POST',

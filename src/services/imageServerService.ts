@@ -41,13 +41,13 @@ class ImageServerService {
    * 获取默认服务器URL
    */
   private getDefaultServerUrl(): string {
-    // 开发环境默认配置
-    if (import.meta.env.DEV) {
-      return 'http://localhost:3002';
+    // 生产环境使用当前域名
+    if (import.meta.env.PROD) {
+      return window.location.origin;
     }
     
-    // 生产环境使用环境变量或相对路径
-    return import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3002';
+    // 开发环境使用 localhost
+    return 'http://localhost:3002';
   }
 
   /**

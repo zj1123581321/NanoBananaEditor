@@ -160,14 +160,19 @@ ${imageLinks}
   }
 
   /**
-   * 发送企业微信消息 (内部方法)
+   * 发送企业微信消息 (内部方法) - 已废弃，应使用后端代理
    */
   private async sendWecomMessageInternal(message: any): Promise<void> {
+    console.warn('⚠️ 警告: sendWecomMessageInternal 被调用，这会导致CORS错误!');
+    console.warn('⚠️ 应该使用 sendNotificationViaBackend 方法');
+    console.trace('调用堆栈:');
+    
     const startTime = Date.now();
 
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
       try {
         console.log(`📤 发送企业微信通知 (第${attempt}次尝试)...`);
+        console.log(`🌐 目标URL: ${this.config.webhookUrl}`);
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
@@ -252,26 +257,39 @@ ${imageLinks}
    * 发送简单文本通知
    */
   async sendTextNotification(text: string): Promise<void> {
-    if (!this.config.enabled || !this.config.webhookUrl) {
-      console.warn('企业微信通知未配置或已禁用');
+    if (!this.config.enabled) {
+      console.warn('企业微信通知已禁用');
       return;
     }
 
-    const message = {
-      msgtype: "text",
-      text: {
-        content: text
-      }
+    // 构造通用的通知数据结构，通过后端发送
+    const notificationData = {
+      user: { id: 'system', email: 'system', username: 'System' },
+      prompt: text,
+      parameters: {},
+      images: [],
+      processingTime: 0,
+      timestamp: Date.now()
     };
 
-    await this.sendWecomMessageInternal(message);
+    console.log('📤 通过后端发送文本通知...');
+    await this.sendNotificationViaBackend(notificationData);
   }
 
   /**
-   * 直接发送企业微信消息 (公开方法)
+   * 直接发送企业微信消息 (公开方法) - 已修改为通过后端
    */
   async sendWecomMessage(message: any): Promise<void> {
-    return this.sendWecomMessageInternal(message);
+    console.warn('⚠️ sendWecomMessage 已重定向到后端，原始消息结构可能需要调整');
+    
+    // 如果是文本消息，转换为通知数据
+    if (message.msgtype === 'text') {
+      return this.sendTextNotification(message.text?.content || '测试消息');
+    }
+    
+    // 其他类型的消息暂时转为文本
+    const text = message.markdown_v2?.content || JSON.stringify(message);
+    return this.sendTextNotification(text);
   }
 
   /**
@@ -309,7 +327,17 @@ ${imageLinks}
    * 通过后端发送通知
    */
   private async sendNotificationViaBackend(data: GenerationNotificationData): Promise<void> {
-    const imageServerUrl = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3002';
+    // 动态获取后端URL
+    const getImageServerUrl = () => {
+      // 生产环境使用当前域名
+      if (import.meta.env.PROD) {
+        return window.location.origin;
+      }
+      // 开发环境使用 localhost
+      return 'http://localhost:3002';
+    };
+    
+    const imageServerUrl = getImageServerUrl();
     const notifyUrl = `${imageServerUrl}/api/wecom/notify`;
     
     console.log('📤 发送通知请求到:', notifyUrl);

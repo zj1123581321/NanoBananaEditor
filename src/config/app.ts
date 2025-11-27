@@ -23,6 +23,32 @@ export interface AppConfig {
 }
 
 /**
+ * 获取后端服务 URL（内部函数）
+ */
+function getBackendUrlInternal(): string {
+  const isProd = import.meta.env.PROD;
+  
+  // 调试信息
+  console.log('🔧 Backend URL 配置调试:', {
+    isProd,
+    mode: import.meta.env.MODE,
+    windowOrigin: typeof window !== 'undefined' ? window.location.origin : 'N/A'
+  });
+  
+  // 在生产环境下，始终使用当前域名（运行时确定）
+  if (isProd) {
+    const finalUrl = window.location.origin;
+    console.log('📍 生产环境使用 window.location.origin:', finalUrl);
+    return finalUrl;
+  }
+  
+  // 开发环境使用 localhost
+  const devUrl = 'http://localhost:3002';
+  console.log('📍 开发环境使用固定地址:', devUrl);
+  return devUrl;
+}
+
+/**
  * 获取应用配置
  */
 function getAppConfig(): AppConfig {
@@ -46,7 +72,7 @@ function getAppConfig(): AppConfig {
     };
     
     config.backend = {
-      url: import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3002',
+      url: getBackendUrlInternal(),
     };
   }
 
@@ -84,7 +110,7 @@ export function getBackendUrl(): string {
     return appConfig.backend.url;
   }
   
-  return import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3002';
+  return getBackendUrlInternal();
 }
 
 /**
