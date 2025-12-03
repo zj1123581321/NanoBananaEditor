@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
-import { HelpCircle, Languages, User, LogOut, ChevronDown } from 'lucide-react';
-import { InfoModal } from './InfoModal';
+import { FileText, Languages, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { authService, type AuthUser } from '../services/authService';
 import { isMultiUserMode } from '../config/app';
@@ -76,7 +75,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ user, onLogout }) => {
               </span>
             )}
           </div>
-          
+
           <div className="p-2">
             <Button
               variant="ghost"
@@ -95,7 +94,6 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ user, onLogout }) => {
 };
 
 export const Header: React.FC = () => {
-  const [showInfoModal, setShowInfoModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const { t, i18n } = useTranslation('ui');
   const { currentLanguage, setCurrentLanguage } = useAppStore();
@@ -110,7 +108,7 @@ export const Header: React.FC = () => {
 
     return unsubscribe;
   }, []);
-  
+
   const toggleLanguage = () => {
     const newLang = currentLanguage === 'en' ? 'zh' : 'en';
     setCurrentLanguage(newLang);
@@ -140,36 +138,38 @@ export const Header: React.FC = () => {
             </h1>
           </div>
           <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-            1.0
+            1.5
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="ghost" 
+          {/* 说明文档链接 - 突出显示 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open('https://for-deal.feishu.cn/wiki/Sc1gw33m2iLpAbkFppRckoDvn3f', '_blank')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 hover:text-yellow-300 border border-yellow-500/40 rounded-md transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="text-sm font-medium">{currentLanguage === 'en' ? 'Docs' : '说明文档'}</span>
+          </Button>
+
+          <Button
+            variant="ghost"
             size="icon"
             onClick={toggleLanguage}
             title={`Switch to ${currentLanguage === 'en' ? '中文' : 'English'}`}
           >
             <Languages className="h-5 w-5" />
           </Button>
-          
+
           {/* 用户菜单 - 仅在多用户模式和用户已登录时显示 */}
           {isMultiUserMode() && currentUser && (
             <UserDropdown user={currentUser} onLogout={handleLogout} />
           )}
-          
-          {/* <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setShowInfoModal(true)}
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Button> */}
+
         </div>
       </header>
-      
-      <InfoModal open={showInfoModal} onOpenChange={setShowInfoModal} />
     </>
   );
 };
