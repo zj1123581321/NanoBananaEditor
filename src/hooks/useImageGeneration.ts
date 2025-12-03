@@ -1,18 +1,19 @@
 import { useMutation } from '@tanstack/react-query';
 import { geminiService, GenerationRequest, EditRequest } from '../services/geminiService';
 import { integratedGenerationService, IntegratedGenerationRequest, IntegratedEditRequest } from '../services/integratedGenerationService';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, MODEL_CONFIG } from '../store/useAppStore';
 import { generateId } from '../utils/imageUtils';
 import { Generation, Edit, Asset } from '../types';
 
 export const useImageGeneration = () => {
-  const { addGeneration, setIsGenerating, setCanvasImage, setCurrentProject, currentProject } = useAppStore();
+  const { addGeneration, setIsGenerating, setCanvasImage, setCurrentProject, currentProject, selectedModel } = useAppStore();
 
   const generateMutation = useMutation({
     mutationFn: async (request: GenerationRequest) => {
       // 使用集成生成服务，自动包含通知功能
       const integratedRequest: IntegratedGenerationRequest = {
         ...request,
+        model: selectedModel, // 传递当前选择的模型
         enableNotification: true // 默认启用通知
       };
       console.log('🚀 开始调用集成生成服务...', integratedRequest);
@@ -65,7 +66,7 @@ export const useImageGeneration = () => {
             checksum: img.slice(0, 32)
           })) : [],
           outputAssets,
-          modelVersion: 'gemini-2.5-flash-image-preview',
+          modelVersion: MODEL_CONFIG[selectedModel].apiName,
           timestamp: Date.now()
         };
 
@@ -101,17 +102,18 @@ export const useImageGeneration = () => {
 };
 
 export const useImageEditing = () => {
-  const { 
-    addEdit, 
-    setIsGenerating, 
-    setCanvasImage, 
-    canvasImage, 
+  const {
+    addEdit,
+    setIsGenerating,
+    setCanvasImage,
+    canvasImage,
     editReferenceImages,
     brushStrokes,
     selectedGenerationId,
     currentProject,
     seed,
-    temperature 
+    temperature,
+    selectedModel
   } = useAppStore();
 
   const editMutation = useMutation({
@@ -221,6 +223,7 @@ export const useImageEditing = () => {
         maskImage,
         temperature,
         seed,
+        model: selectedModel, // 传递当前选择的模型
         enableNotification: true // 默认启用通知
       };
       

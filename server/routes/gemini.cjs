@@ -31,11 +31,16 @@ Preserve image quality and ensure the edit looks professional and realistic.`;
 }
 
 /**
+ * 默认模型名称
+ */
+const DEFAULT_MODEL = 'gemini-2.5-flash-image';
+
+/**
  * 调用 Gemini API
  */
 async function callGeminiAPI(params) {
   const apiKey = process.env.VITE_GEMINI_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('Gemini API key not configured');
   }
@@ -44,8 +49,13 @@ async function callGeminiAPI(params) {
   const { GoogleGenAI } = require('@google/genai');
   const genAI = new GoogleGenAI({ apiKey });
 
-  console.log('🤖 调用 Gemini API:', { 
-    prompt: params.prompt?.substring(0, 50) + '...',
+  // 获取模型名称，如果未指定则使用默认模型
+  const modelName = params.model || DEFAULT_MODEL;
+
+  console.log('🤖 调用 Gemini API:', {
+    model: modelName,
+    requestedModel: params.model,
+    prompt: params.prompt?.substring(0, 100) + '...',
     hasImages: params.referenceImages?.length > 0
   });
 
@@ -104,7 +114,7 @@ async function callGeminiAPI(params) {
     }
 
     const response = await genAI.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: modelName,
       contents,
     });
 
@@ -125,7 +135,7 @@ async function callGeminiAPI(params) {
           tokenCount: 50
         }]
       },
-      modelVersion: response.modelVersion || 'gemini-2.5-flash-image-preview'
+      modelVersion: response.modelVersion || modelName
     };
   } catch (error) {
     console.error('❌ Gemini API 调用失败:', error);
@@ -163,7 +173,8 @@ router.post('/generate', authMiddleware, async (req, res) => {
       prompt,
       referenceImages: parameters.referenceImages,
       temperature: parameters.temperature,
-      seed: parameters.seed
+      seed: parameters.seed,
+      model: parameters.model // 传递模型名称
     });
 
     const processingTime = Date.now() - startTime;
@@ -261,7 +272,10 @@ router.post('/edit', authMiddleware, async (req, res) => {
       instruction,
       imageData,
       maskData,
-      ...parameters
+      referenceImages: parameters.referenceImages,
+      temperature: parameters.temperature,
+      seed: parameters.seed,
+      model: parameters.model // 传递模型名称
     });
 
     const processingTime = Date.now() - startTime;

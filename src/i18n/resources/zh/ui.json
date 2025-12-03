@@ -5,13 +5,31 @@
   },
   "tools": {
     "generate": "生成",
-    "edit": "编辑", 
+    "edit": "编辑",
     "mask": "选择",
     "descriptions": {
       "generate": "从文本创建",
       "edit": "修改现有图像",
       "mask": "点击选择区域"
     }
+  },
+  "model": {
+    "title": "模型",
+    "flash": {
+      "name": "Flash",
+      "description": "快速/经济"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "高级/更贵"
+    },
+    "confirmDialog": {
+      "title": "使用高级模型确认",
+      "message": "您选择了 Gemini 3 Pro 模型，该模型生成成本较高。确定要继续吗？",
+      "confirm": "确认生成",
+      "cancel": "取消"
+    },
+    "maxRefImages": "最多 {{count}} 张参考图"
   },
   "promptComposer": {
     "mode": "模式",

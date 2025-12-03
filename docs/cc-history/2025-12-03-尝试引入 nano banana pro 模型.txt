@@ -1,0 +1,1154 @@
+
+╭─── Claude Code v2.0.56 ──────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                Welcome back Steven!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ Recent activity         │
+│                        ▘▘ ▝▝                       │ No recent activity      │
+│                                                    │                         │
+│               Opus 4.5 · Claude Max                │                         │
+│ D:\MyFolders\Developments\0Python\250908_AIImageE… │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+> /clear 
+  ⎿  (no content)
+
+> @NanoBananaEditor\README.md
+当前项目使用的是 gemini-2.5-flash-image 模型，比较便宜，最多支持两张参考图。
+现在我想要引入 gemini-3-pro-image-preview 这个最强模型，模型支持最多 14 
+张参考图。但是我打算在前端最多允许 4 张参考图。
+
+前端需要支持：
+- 用户自主选择模型，不同的模型支持不同的参考图数量
+- 如果使用 gemini-3-pro-image-preview ，需要二次弹窗进行确认（因为比较贵）
+@NanoBananaEditor\docs\google_image_gen_api\nano_banana_pro_api.md 
+  ⎿  Read NanoBananaEditor\README.md (293 lines)
+  ⎿ Read NanoBananaEditor\docs\google_image_gen_api\nano_banana_pro_api.md
+    (2000+ lines)
+  ⎿  NanoBananaEditor\CLAUDE.md
+
+● 我来探索一下项目结构，了解当前的前端实现，然后规划这个功能的实现。
+
+● Explore(探索前端代码结构)
+  ⎿  Done (26 tool uses · 80.3k tokens · 2m 38s)                           
+
+● 探索完成。我现在对项目结构有了清晰的理解。让我查看几个关键文件的具体实现：
+
+● Read(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Read 575 lines
+
+● Read(NanoBananaEditor\src\store\useAppStore.ts)
+  ⎿  Read 177 lines
+
+● Read(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Read 463 lines
+
+● 现在我对项目有了全面了解。让我查看国际化资源文件和类型定义：
+
+● Search(pattern: "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBa
+        nanaEditor/src/i18n/resources/**/*.json")
+  ⎿  Found 0 files 
+
+● Search(pattern: "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBa
+        nanaEditor/src/i18n/**/*")
+  ⎿  Found 0 files 
+
+● Search(pattern: "i18n|translation", path: "NanoBananaEditor\src")
+  ⎿  Found 11 files (ctrl+o to expand)
+
+● Read(NanoBananaEditor\src\i18n\index.ts)
+  ⎿  Read 36 lines
+
+● Bash(dir "D:\MyFolders\Developments\0Python\250908_AIImageEditor\NanoBananaEdi
+      tor\src\i18n" /s /b)
+  ⎿  Error: Exit code 2
+     dir: cannot access '/s': No such file or directory
+     dir: cannot access '/b': No such file or directory
+
+     D\:\\MyFolders\\Developments\\0Python\\250908_AIImageEditor\\NanoBananaEdito
+     r\\src\\i18n:
+     index.ts  resources  types.ts
+
+● Bash(ls -la "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBanana
+      Editor/src/i18n/resources/")
+  ⎿  total 8                                   
+     drwxr-xr-x 1 zlx 197121 0 Sep  8 20:54 ./
+     drwxr-xr-x 1 zlx 197121 0 Sep  8 21:04 ../
+     … +2 lines (ctrl+o to expand)
+
+● Bash(ls -la "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBanana
+      Editor/src/i18n/resources/zh/")
+  ⎿  total 25                                     
+     drwxr-xr-x 1 zlx 197121    0 Sep  9 16:07 ./
+     drwxr-xr-x 1 zlx 197121    0 Sep  8 20:54 ../
+     … +5 lines (ctrl+o to expand)
+
+● Read(NanoBananaEditor\src\i18n\resources\zh\ui.json)
+  ⎿  Read 139 lines
+
+● Read(NanoBananaEditor\src\i18n\resources\en\ui.json)
+  ⎿  Read 139 lines
+
+● 现在我对项目有了全面的了解。让我创建一个实现计划并开始工作：
+  ⎿  Interrupted · What should Claude do instead?
+
+> 先不用修改具体的代码，我们来聊聊方案设计，不明确的地方可以向我提问。 
+
+● 好的，我们先讨论方案设计。基于我对项目的了解，有几个需要明确的问题：
+
+  需要确认的问题
+
+  1. 模型选择 UI 位置
+
+  目前前端有三个工具模式：Generate、Edit、Mask。模型选择器应该放在哪里？
+  - 方案 A：放在"高级控制"区域（与 temperature、seed 一起）
+  - 方案 B：放在工具模式选择下方，作为独立区块（更显眼）
+  - 方案 C：放在生成按钮旁边
+
+  2. 模型与模式的关系
+
+  Pro 模型是否支持所有三种模式（Generate/Edit/Mask）？还是仅限于某些模式？
+
+  3. 参考图片数量限制
+
+  - Flash 模型：当前限制最多 2 张
+  - Pro 模型：你提到前端限制 4 张
+
+  这个限制是针对 Edit 模式 的风格参考图吗？还是也包括其他场景？
+
+  4. 二次确认弹窗的触发时机
+
+  - 方案 A：切换到 Pro 模型时立即弹窗确认
+  - 方案 B：点击生成按钮时弹窗确认（每次生成都确认）
+  - 方案 C：切换时确认一次，之后不再弹窗（直到切回 Flash 再切回来）
+
+  5. 后端 API 兼容性
+
+  当前后端 imageServerExtended.cjs 是否需要同步修改以支持 Pro
+  模型？还是前端直接调用不同的 Gemini 模型即可？
+
+  6. 默认模型
+
+  用户首次使用时，默认选择哪个模型？我建议默认 Flash（便宜）。
+
+  ---
+  你有什么想法？或者有其他我没考虑到的点？
+
+> 1. 模型选择 UI 选择方案B，需要比较显眼
+2. 三种模式都支持，只替换模型名即可。
+3. 是的，是针对 edit 模式
+4. 方案 B，每次生成都确认
+5. 这块需要你阅读相关代码判断需要修改哪些部分
+6. 默认使用 flash 的模型。 
+
+● 明白了。让我查看后端代码，判断需要修改哪些部分：
+
+● Read(NanoBananaEditor\server\imageServerExtended.cjs)
+  ⎿  Read 764 lines
+
+● 让我继续查看 Gemini 路由文件：
+
+● Read(NanoBananaEditor\server\routes\gemini.cjs)
+  ⎿  Read 375 lines
+
+● 好的，我已经分析了后端代码。现在我可以给你一个完整的方案设计：
+
+  ---
+  方案设计总结
+
+  需要修改的文件
+
+  前端 (6 个文件)
+
+  | 文件                                    | 修改内容
+                                  |
+  |---------------------------------------|---------------------------------
+  --------------------------|
+  | src/store/useAppStore.ts              | 添加 selectedModel: 'flash' | 
+  'pro' 状态和 setSelectedModel 方法 |
+  | src/services/geminiServiceExtended.ts | 模型配置常量 + API 调用时传递
+  model 参数                               |
+  | src/components/PromptComposer.tsx     | 模型选择 UI（工具模式下方） +
+  Pro 确认弹窗逻辑                              |
+  | src/hooks/useImageGeneration.ts       | 传递 model 参数到生成/编辑请求
+                                       |
+  | src/i18n/resources/zh/ui.json         | 添加模型相关中文翻译
+                                      |
+  | src/i18n/resources/en/ui.json         | 添加模型相关英文翻译
+                                      |
+
+  后端 (1 个文件)
+
+  | 文件                       | 修改内容                    |
+  |--------------------------|-------------------------|
+  | server/routes/gemini.cjs | 从请求中读取 model 参数，动态选择模型名 |
+
+  ---
+  模型配置
+
+  // 模型配置常量
+  const MODEL_CONFIG = {
+    flash: {
+      name: 'gemini-2.5-flash-image-preview',
+      maxReferenceImages: 2,
+      displayName: 'Flash (快速)',
+    },
+    pro: {
+      name: 'gemini-3-pro-image-preview',
+      maxReferenceImages: 4,  // 前端限制 4 张
+      displayName: 'Pro (高级)',
+    }
+  };
+
+  ---
+  UI 设计草图
+
+  ┌─────────────────────────────────────┐
+  │  模式                                │
+  │  ┌─────────┬─────────┬─────────┐    │
+  │  │ 生成    │  编辑   │  选择   │    │
+  │  └─────────┴─────────┴─────────┘    │
+  │                                      │
+  │  模型                                │
+  │  ┌───────────────┬───────────────┐  │
+  │  │ ⚡ Flash      │ ✨ Pro        │  │
+  │  │   快速/便宜   │   高级/贵     │  │
+  │  └───────────────┴───────────────┘  │
+  │                                      │
+  │  ... 其余内容 ...                    │
+  └─────────────────────────────────────┘
+
+  ---
+  确认弹窗设计
+
+  点击生成按钮时，如果选择的是 Pro 模型：
+
+  ┌────────────────────────────────────────┐
+  │  ⚠️ 使用高级模型确认                    │
+  ├────────────────────────────────────────┤
+  │                                        │
+  │  您选择了 Gemini 3 Pro 模型，该模型     │
+  │  生成成本较高。确定要继续吗？           │
+  │                                        │
+  │  ┌────────────┐  ┌────────────────┐    │
+  │  │   取消     │  │ 确认生成       │    │
+  │  └────────────┘  └────────────────┘    │
+  └────────────────────────────────────────┘
+
+  ---
+  参考图片数量动态限制
+
+  - Edit 模式下，根据选择的模型动态调整：
+    - Flash: 最多 2 张
+    - Pro: 最多 4 张
+  - 切换模型时，如果当前图片数量超出新模型限制，保留前 N 张
+
+  ---
+  这个方案你觉得可以吗？有什么需要调整的地方？
+
+> 可以 
+
+● 好的，开始实现。
+
+● Update(NanoBananaEditor\src\store\useAppStore.ts)
+  ⎿  Updated NanoBananaEditor\src\store\useAppStore.ts with 29 additions an
+      1 removal
+        2    import { devtools } from 'zustand/middleware';
+        3    import { Project, Generation, Edit, SegmentationMask, 
+            BrushStroke } from '../types';
+        4    
+        5 +  /**
+        6 +   * 模型类型定义
+        7 +   */
+        8 +  export type ModelType = 'flash' | 'pro';
+        9 +  
+       10 +  /**
+       11 +   * 模型配置常量
+       12 +   */
+       13 +  export const MODEL_CONFIG = {
+       14 +    flash: {
+       15 +      id: 'flash' as ModelType,
+       16 +      apiName: 'gemini-2.5-flash-image-preview',
+       17 +      displayName: 'Flash',
+       18 +      description: '快速/经济',
+       19 +      maxReferenceImages: 2,
+       20 +    },
+       21 +    pro: {
+       22 +      id: 'pro' as ModelType,
+       23 +      apiName: 'gemini-3-pro-image-preview',
+       24 +      displayName: 'Pro',
+       25 +      description: '高级/更贵',
+       26 +      maxReferenceImages: 4,
+       27 +    }
+       28 +  } as const;
+       29 +  
+       30    interface AppState {
+       31      // Current project
+       32      currentProject: Project | null;
+       33 -    
+       33 +  
+       34 +    // Model selection
+       35 +    selectedModel: ModelType;
+       36 +  
+       37      // Canvas state
+       38      canvasImage: string | null;
+       39      canvasZoom: number;
+
+● Update(NanoBananaEditor\src\store\useAppStore.ts)
+  ⎿  Updated NanoBananaEditor\src\store\useAppStore.ts with 3 additions and
+     1 removal
+
+       101      setShowPromptPanel: (show: boolean) => void;
+       102      
+       103      setSelectedTool: (tool: 'generate' | 'edit' | 'mask') => 
+             void;
+       104 -    
+       104 +  
+       105      setCurrentLanguage: (language: 'en' | 'zh') => void;
+       106 +  
+       107 +    setSelectedModel: (model: ModelType) => void;
+       108    }
+       109    
+       110    export const useAppStore = create<AppState>()(
+
+● Update(NanoBananaEditor\src\store\useAppStore.ts)
+  ⎿  Updated NanoBananaEditor\src\store\useAppStore.ts with 1 addition
+       112        (set, get) => ({
+       113          // Initial state
+       114          currentProject: null,
+       115 +        selectedModel: 'flash',
+       116          canvasImage: null,
+       117          canvasZoom: 1,
+       118          canvasPan: { x: 0, y: 0 },
+
+● Update(NanoBananaEditor\src\store\useAppStore.ts)
+  ⎿  Updated NanoBananaEditor\src\store\useAppStore.ts with 15 additions 
+       202            // Persist language preference to localStorage
+       203            localStorage.setItem('i18nextLng', language);
+       204          },
+       205 +  
+       206 +        setSelectedModel: (model) => {
+       207 +          const maxImages = 
+           + MODEL_CONFIG[model].maxReferenceImages;
+       208 +          const currentEditImages = 
+           + get().editReferenceImages;
+       209 +  
+       210 +          // 
+           + 如果当前参考图片数量超出新模型限制，截断到允许的数量
+       211 +          if (currentEditImages.length > maxImages) {
+       212 +            set({
+       213 +              selectedModel: model,
+       214 +              editReferenceImages: currentEditImages.slice(0,
+           +  maxImages)
+       215 +            });
+       216 +          } else {
+       217 +            set({ selectedModel: model });
+       218 +          }
+       219 +        },
+       220        }),
+       221        { name: 'nano-banana-store' }
+       222      )
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 3 
+     additions
+        6    import { appConfig, getBackendUrl, isMultiUserMode } from 
+            '../config/app';
+        7    import { authService } from './authService';
+        8    
+        9 +  import { ModelType, MODEL_CONFIG } from 
+          + '../store/useAppStore';
+       10 +  
+       11    export interface GenerationRequest {
+       12      prompt: string;
+       13      referenceImages?: string[]; // base64 array
+       14      temperature?: number;
+       15      seed?: number;
+       16      projectId?: string;
+       17 +    model?: ModelType; // 模型选择
+       18    }
+       19    
+       20    export interface EditRequest {
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 1 
+     addition
+       25      temperature?: number;
+       26      seed?: number;
+       27      projectId?: string;
+       28 +    model?: ModelType; // 模型选择
+       29    }
+       30    
+       31    export interface SegmentationRequest {
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 6 
+     additions and 2 removals
+       130       */
+       131      private async directGenerateImage(request: 
+             GenerationRequest): Promise<string[]> {
+       132        const contents: any[] = [{ text: request.prompt }];
+       133 -      
+       133 +  
+       134        // 添加参考图像
+       135        if (request.referenceImages && 
+             request.referenceImages.length > 0) {
+       136          request.referenceImages.forEach(image => {
+     ...
+       143          });
+       144        }
+       145    
+       146 +      // 根据选择的模型获取 API 模型名
+       147 +      const modelType = request.model || 'flash';
+       148 +      const modelName = MODEL_CONFIG[modelType].apiName;
+       149 +  
+       150        const response = await 
+             this.directClient!.models.generateContent({
+       151 -        model: "gemini-2.5-flash-image-preview",
+       151 +        model: modelName,
+       152          contents,
+       153        });
+       154    
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 5 
+     additions and 1 removal
+       198          });
+       199        }
+       200    
+       201 +      // 根据选择的模型获取 API 模型名
+       202 +      const modelType = request.model || 'flash';
+       203 +      const modelName = MODEL_CONFIG[modelType].apiName;
+       204 +  
+       205        const response = await 
+             this.directClient!.models.generateContent({
+       206 -        model: "gemini-2.5-flash-image-preview",
+       206 +        model: modelName,
+       207          contents,
+       208        });
+       209    
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 3 
+     additions and 1 removal
+       264          
+       265          if (isMultiUserMode()) {
+       266            // 多用户模式：通过后端 API
+       267 +          const modelType = request.model || 'flash';
+       268            const result = await 
+             this.callBackendAPI('/generate', {
+       269              prompt: request.prompt,
+       270              parameters: {
+       271                temperature: request.temperature,
+       272                seed: request.seed,
+       273 -              referenceImages: request.referenceImages
+       273 +              referenceImages: request.referenceImages,
+       274 +              model: MODEL_CONFIG[modelType].apiName // 
+           + 传递模型名给后端
+       275              },
+       276              projectId: request.projectId
+       277            });
+
+● Update(NanoBananaEditor\src\services\geminiServiceExtended.ts)
+  ⎿  Updated NanoBananaEditor\src\services\geminiServiceExtended.ts with 3 
+     additions and 1 removal
+       336          
+       337          if (isMultiUserMode()) {
+       338            // 多用户模式：通过后端 API
+       339 +          const modelType = request.model || 'flash';
+       340            const result = await this.callBackendAPI('/edit', {
+       341              instruction: request.instruction,
+       342              imageData: request.originalImage,
+     ...
+       343              parameters: {
+       344                temperature: request.temperature,
+       345                seed: request.seed,
+       346 -              referenceImages: request.referenceImages
+       346 +              referenceImages: request.referenceImages,
+       347 +              model: MODEL_CONFIG[modelType].apiName // 
+           + 传递模型名给后端
+       348              },
+       349              projectId: request.projectId
+       350            });
+
+● Update(NanoBananaEditor\server\routes\gemini.cjs)
+  ⎿  Updated NanoBananaEditor\server\routes\gemini.cjs with 11 additions an
+      2 removals
+       31    }
+       32    
+       33    /**
+       34 +   * 默认模型名称
+       35 +   */
+       36 +  const DEFAULT_MODEL = 'gemini-2.5-flash-image-preview';
+       37 +  
+       38 +  /**
+       39     * 调用 Gemini API
+       40     */
+       41    async function callGeminiAPI(params) {
+       42      const apiKey = process.env.VITE_GEMINI_API_KEY;
+       43 -    
+       43 +  
+       44      if (!apiKey) {
+       45        throw new Error('Gemini API key not configured');
+       46      }
+     ...
+       44      const { GoogleGenAI } = require('@google/genai');
+       45      const genAI = new GoogleGenAI({ apiKey });
+       46    
+       47 -    console.log('🤖 调用 Gemini API:', { 
+       47 +    // 获取模型名称，如果未指定则使用默认模型
+       48 +    const modelName = params.model || DEFAULT_MODEL;
+       49 +  
+       50 +    console.log('🤖 调用 Gemini API:', {
+       51 +      model: modelName,
+       52        prompt: params.prompt?.substring(0, 50) + '...',
+       53        hasImages: params.referenceImages?.length > 0
+       54      });
+
+● Update(NanoBananaEditor\server\routes\gemini.cjs)
+  ⎿  Updated NanoBananaEditor\server\routes\gemini.cjs with 1 addition and 
+      removal
+       113        }
+       114    
+       115        const response = await genAI.models.generateContent({
+       116 -        model: "gemini-2.5-flash-image-preview",
+       116 +        model: modelName,
+       117          contents,
+       118        });
+       119    
+
+● Update(NanoBananaEditor\server\routes\gemini.cjs)
+  ⎿  Updated NanoBananaEditor\server\routes\gemini.cjs with 2 additions and
+     1 removal
+
+       172          prompt,
+       173          referenceImages: parameters.referenceImages,
+       174          temperature: parameters.temperature,
+       175 -        seed: parameters.seed
+       175 +        seed: parameters.seed,
+       176 +        model: parameters.model // 传递模型名称
+       177        });
+       178    
+       179        const processingTime = Date.now() - startTime;
+
+● Update(NanoBananaEditor\server\routes\gemini.cjs)
+  ⎿  Updated NanoBananaEditor\server\routes\gemini.cjs with 4 additions and
+     1 removal
+
+       271          instruction,
+       272          imageData,
+       273          maskData,
+       274 -        ...parameters
+       274 +        referenceImages: parameters.referenceImages,
+       275 +        temperature: parameters.temperature,
+       276 +        seed: parameters.seed,
+       277 +        model: parameters.model // 传递模型名称
+       278        });
+       279    
+       280        const processingTime = Date.now() - startTime;
+
+● Read(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Read 293 lines
+
+● 让我查看 integratedGenerationService 的接口定义：
+
+● Read(NanoBananaEditor\src\services\integratedGenerationService.ts)
+  ⎿  Read 363 lines
+
+● 需要更新 integratedGenerationService.ts，让它传递模型参数：
+
+● Update(NanoBananaEditor\src\services\integratedGenerationService.ts)
+  ⎿  Updated NanoBananaEditor\src\services\integratedGenerationService.ts  
+     with 2 additions and 1 removal
+       67            referenceImages: request.referenceImages,
+       68            temperature: request.temperature,
+       69            seed: request.seed,
+       70 -          projectId: request.projectId
+       70 +          projectId: request.projectId,
+       71 +          model: request.model // 传递模型参数
+       72          });
+       73          
+       74          // 检查生成结果是否有效
+
+● Update(NanoBananaEditor\src\services\integratedGenerationService.ts)
+  ⎿  Updated NanoBananaEditor\src\services\integratedGenerationService.ts  
+     with 2 additions and 1 removal
+       174            referenceImages: request.referenceImages,
+       175            maskImage: request.maskImage,
+       176            temperature: request.temperature,
+       177 -          seed: request.seed
+       177 +          seed: request.seed,
+       178 +          model: request.model // 传递模型参数
+       179          });
+       180    
+       181          // 检查编辑结果是否有效
+
+● 现在更新 useImageGeneration.ts，添加模型参数的读取和传递：
+
+● Update(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Updated NanoBananaEditor\src\hooks\useImageGeneration.ts with 2       
+     additions and 2 removals
+        1    import { useMutation } from '@tanstack/react-query';
+        2    import { geminiService, GenerationRequest, EditRequest } 
+            from '../services/geminiService';
+        3    import { integratedGenerationService, 
+            IntegratedGenerationRequest, IntegratedEditRequest } from 
+            '../services/integratedGenerationService';
+        4 -  import { useAppStore } from '../store/useAppStore';
+        4 +  import { useAppStore, MODEL_CONFIG 
+          +  } from '../store/useAppStore';
+        5    import { generateId } from '../utils/imageUtils';
+        6    import { Generation, Edit, Asset } from '../types';
+        7    
+        8    export const useImageGeneration = () => {
+        9 -    const { addGeneration, setIsGenerating, setCanvasImage, 
+          -  setCurrentProject, currentProject } = useAppStore();
+        9 +    const { addGeneration, setIsGenerating, setCanvasImage, 
+          +  setCurrentProject, currentProject, selectedModel 
+          +  } = useAppStore();
+       10    
+       11      const generateMutation = useMutation({
+       12        mutationFn: async (request: GenerationRequest) => {
+
+● Update(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Updated NanoBananaEditor\src\hooks\useImageGeneration.ts with 1       
+     addition
+       13          // 使用集成生成服务，自动包含通知功能
+       14          const integratedRequest: IntegratedGenerationRequest =
+             {
+       15            ...request,
+       16 +          model: selectedModel, // 传递当前选择的模型
+       17            enableNotification: true // 默认启用通知
+       18          };
+       19          console.log('🚀 开始调用集成生成服务...', 
+            integratedRequest);
+
+● Update(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Updated NanoBananaEditor\src\hooks\useImageGeneration.ts with 1       
+     addition and 1 removal
+       66                checksum: img.slice(0, 32)
+       67              })) : [],
+       68              outputAssets,
+       69 -            modelVersion: 'gemini-2.5-flash-image-preview',
+       69 +            modelVersion: MODEL_CONFIG[selectedModel].apiName,
+       70              timestamp: Date.now()
+       71            };
+       72    
+
+● Update(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Updated NanoBananaEditor\src\hooks\useImageGeneration.ts with 7       
+     additions and 6 removals
+       102    };
+       103    
+       104    export const useImageEditing = () => {
+       105 -    const { 
+       106 -      addEdit, 
+       107 -      setIsGenerating, 
+       108 -      setCanvasImage, 
+       109 -      canvasImage, 
+       105 +    const {
+       106 +      addEdit,
+       107 +      setIsGenerating,
+       108 +      setCanvasImage,
+       109 +      canvasImage,
+       110        editReferenceImages,
+       111        brushStrokes,
+       112        selectedGenerationId,
+       113        currentProject,
+       114        seed,
+       115 -      temperature 
+       115 +      temperature,
+       116 +      selectedModel
+       117      } = useAppStore();
+       118    
+       119      const editMutation = useMutation({
+
+● Update(NanoBananaEditor\src\hooks\useImageGeneration.ts)
+  ⎿  Updated NanoBananaEditor\src\hooks\useImageGeneration.ts with 1       
+     addition
+       223            maskImage,
+       224            temperature,
+       225            seed,
+       226 +          model: selectedModel, // 传递当前选择的模型
+       227            enableNotification: true // 默认启用通知
+       228          };
+       229          
+
+● Update(NanoBananaEditor\src\i18n\resources\zh\ui.json)
+  ⎿  Updated NanoBananaEditor\src\i18n\resources\zh\ui.json with 19        
+     additions and 1 removal
+        5      },
+        6      "tools": {
+        7        "generate": "生成",
+        8 -      "edit": "编辑", 
+        8 +      "edit": "编辑",
+        9        "mask": "选择",
+       10        "descriptions": {
+       11          "generate": "从文本创建",
+     ...
+       13          "mask": "点击选择区域"
+       14        }
+       15      },
+       16 +    "model": {
+       17 +      "title": "模型",
+       18 +      "flash": {
+       19 +        "name": "Flash",
+       20 +        "description": "快速/经济"
+       21 +      },
+       22 +      "pro": {
+       23 +        "name": "Pro",
+       24 +        "description": "高级/更贵"
+       25 +      },
+       26 +      "confirmDialog": {
+       27 +        "title": "使用高级模型确认",
+       28 +        "message": "您选择了 Gemini 3 Pro 
+          + 模型，该模型生成成本较高。确定要继续吗？",
+       29 +        "confirm": "确认生成",
+       30 +        "cancel": "取消"
+       31 +      },
+       32 +      "maxRefImages": "最多 {{count}} 张参考图"
+       33 +    },
+       34      "promptComposer": {
+       35        "mode": "模式",
+       36        "showPanel": "显示提示词面板",
+
+● Update(NanoBananaEditor\src\i18n\resources\en\ui.json)
+  ⎿  Updated NanoBananaEditor\src\i18n\resources\en\ui.json with 19        
+     additions and 1 removal
+        5      },
+        6      "tools": {
+        7        "generate": "Generate",
+        8 -      "edit": "Edit", 
+        8 +      "edit": "Edit",
+        9        "mask": "Select",
+       10        "descriptions": {
+       11          "generate": "Create from text",
+     ...
+       13          "mask": "Click to select"
+       14        }
+       15      },
+       16 +    "model": {
+       17 +      "title": "Model",
+       18 +      "flash": {
+       19 +        "name": "Flash",
+       20 +        "description": "Fast/Cheap"
+       21 +      },
+       22 +      "pro": {
+       23 +        "name": "Pro",
+       24 +        "description": "Advanced/Expensive"
+       25 +      },
+       26 +      "confirmDialog": {
+       27 +        "title": "Confirm Pro Model Usage",
+       28 +        "message": "You have selected the Gemini 3 Pro model, 
+          + which has higher generation costs. Are you sure you want to 
+          + continue?",
+       29 +        "confirm": "Confirm",
+       30 +        "cancel": "Cancel"
+       31 +      },
+       32 +      "maxRefImages": "Max {{count}} ref images"
+       33 +    },
+       34      "promptComposer": {
+       35        "mode": "Mode",
+       36        "showPanel": "Show Prompt Panel",
+
+● 现在更新 PromptComposer.tsx，添加模型选择 UI 和确认弹窗：
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 2     
+     additions and 2 removals
+        2    import { useTranslation } from 'react-i18next';
+        3    import { Textarea } from './ui/Textarea';
+        4    import { Button } from './ui/Button';
+        5 -  import { useAppStore } from '../store/useAppStore';
+        5 +  import { useAppStore, MODEL_CONFIG, ModelType 
+          +  } from '../store/useAppStore';
+        6    import { useImageGeneration, useImageEditing } from 
+            '../hooks/useImageGeneration';
+        7    import { useImagePaste, useImagePasteStatus } from 
+            '../hooks/useImagePaste';
+        8    import { useImageDrop } from '../hooks/useImageDrop';
+        9    import { useAuthInterceptor } from 
+            '../hooks/useAuthInterceptor';
+       10 -  import { Upload, Wand2, Edit3, MousePointer, HelpCircle, 
+          -  ChevronDown, ChevronRight, RotateCcw, Sparkles 
+          -  } from 'lucide-react';
+       10 +  import { Upload, Wand2, Edit3, MousePointer, HelpCircle, 
+          +  ChevronDown, ChevronRight, RotateCcw, Sparkles, Zap, Crown 
+          +  } from 'lucide-react';
+       11    import { blobToBase64 } from '../utils/imageUtils';
+       12    import { PromptHints } from './PromptHints';
+       13    import { PromptOptimizer } from './PromptOptimizer';
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 2     
+     additions
+       40        showPromptPanel,
+       41        setShowPromptPanel,
+       42        clearBrushStrokes,
+       43 +      selectedModel,
+       44 +      setSelectedModel,
+       45      } = useAppStore();
+       46    
+       47      const { generate } = useImageGeneration();
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 4     
+     additions
+       50      const [showClearConfirm, setShowClearConfirm] = 
+            useState(false);
+       51      const [showHintsModal, setShowHintsModal] = 
+            useState(false);
+       52      const [showPromptOptimizer, setShowPromptOptimizer] = 
+            useState(false);
+       53 +    const [showProModelConfirm, setShowProModelConfirm] = 
+          + useState(false);
+       54      const fileInputRef = useRef<HTMLInputElement>(null);
+       55 +  
+       56 +    // 获取当前模型的最大参考图数量
+       57 +    const maxReferenceImages = 
+          + MODEL_CONFIG[selectedModel].maxReferenceImages;
+       58      
+       59      // 认证拦截器
+       60      const { 
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 1     
+     addition and 1 removal
+       89            showError(t('ui:toast.imageUploadNotSupported'));
+       90            return;
+       91          } else if (selectedTool === 'edit') {
+       92 -          if (editReferenceImages.length < 2) {
+       92 +          if (editReferenceImages.length < maxReferenceImages
+          +  ) {
+       93              addEditReferenceImage(imageData.dataUrl);
+       94              showSuccess(t('ui:toast.stylePastedSuccess'));
+       95            } else {
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 33  
+     additions and 16 removals
+       115        enabled: true
+       116      });
+       117    
+       118 -    const handleGenerate = async () => {
+       119 -      if (!currentPrompt.trim()) return;
+       120 -      
+       121 -      // 检查认证状态
+       122 -      const actionName = selectedTool === 'generate' ? 
+           - '图片生成' : 
+       123 -                        selectedTool === 'edit' ? '图片编辑' 
+           - : '图片处理';
+       124 -      
+       125 -      const { canExecute } = await checkAuthAndExecute(async 
+           - () => {}, actionName);
+       126 -      
+       127 -      if (!canExecute) {
+       128 -        // 用户未登录，已经显示登录弹窗
+       129 -        return;
+       130 -      }
+       131 -      
+       132 -      // 用户已登录或单用户模式，执行操作
+       118 +    // 实际执行生成/编辑的函数
+       119 +    const executeGeneration = async () => {
+       120        if (selectedTool === 'generate') {
+       121          const referenceImages = uploadedImages
+       122            .filter(img => img.includes('base64,'))
+       123            .map(img => img.split('base64,')[1]);
+       124 -          
+       124 +  
+       125          await generate({
+       126            prompt: currentPrompt,
+       127            referenceImages: referenceImages.length > 0 ? 
+             referenceImages : undefined,
+     ...
+       146        }
+       147      };
+       148    
+       149 +    const handleGenerate = async () => {
+       150 +      if (!currentPrompt.trim()) return;
+       151 +  
+       152 +      // 检查认证状态
+       153 +      const actionName = selectedTool === 'generate' ? 
+           + '图片生成' :
+       154 +                        selectedTool === 'edit' ? '图片编辑' 
+           + : '图片处理';
+       155 +  
+       156 +      const { canExecute } = await checkAuthAndExecute(async 
+           + () => {}, actionName);
+       157 +  
+       158 +      if (!canExecute) {
+       159 +        // 用户未登录，已经显示登录弹窗
+       160 +        return;
+       161 +      }
+       162 +  
+       163 +      // 如果选择了 Pro 模型，显示确认弹窗
+       164 +      if (selectedModel === 'pro') {
+       165 +        setShowProModelConfirm(true);
+       166 +        return;
+       167 +      }
+       168 +  
+       169 +      // Flash 模型直接执行
+       170 +      await executeGeneration();
+       171 +    };
+       172 +  
+       173 +    // Pro 模型确认后执行
+       174 +    const handleProModelConfirm = async () => {
+       175 +      setShowProModelConfirm(false);
+       176 +      await executeGeneration();
+       177 +    };
+       178 +  
+       179      const handleFileUpload = async (event: 
+             React.ChangeEvent<HTMLInputElement>) => {
+       180        const file = event.target.files?.[0];
+       181        if (file && file.type.startsWith('image/')) {
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 5     
+     additions and 5 removals
+       169          try {
+       170            const base64 = await blobToBase64(file);
+       171            const dataUrl = 
+             `data:${file.type};base64,${base64}`;
+       172 -          
+       172 +  
+       173            if (selectedTool === 'generate') {
+       174 -            // Add to reference images (max 2)
+       175 -            if (uploadedImages.length < 2) {
+       174 +            // Add to reference images (max based on model)
+       175 +            if (uploadedImages.length < maxReferenceImages) {
+       176                addUploadedImage(dataUrl);
+       177              }
+       178            } else if (selectedTool === 'edit') {
+       179 -            // For edit mode, add to separate edit reference 
+           -  images (max 2)
+       180 -            if (editReferenceImages.length < 2) {
+       179 +            // For edit mode, add to separate edit reference 
+           +  images (max based on model)
+       180 +            if (editReferenceImages.length < 
+           +  maxReferenceImages) {
+       181                addEditReferenceImage(dataUrl);
+       182              }
+       183              // Set as canvas image if none exists
+
+● 现在需要在 UI 中添加模型选择区块和确认弹窗。让我先找到工具模式选择的位置：
+
+● Read(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Read 100 lines
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 38 
+     additions
+       276            </div>
+       277          </div>
+       278    
+       279 +        {/* Model Selection */}
+       280 +        <div>
+       281 +          <h3 className="text-sm font-medium text-gray-300 
+           + mb-3">{t('ui:model.title')}</h3>
+       282 +          <div className="grid grid-cols-2 gap-2">
+       283 +            <button
+       284 +              onClick={() => setSelectedModel('flash')}
+       285 +              className={cn(
+       286 +                'flex flex-col items-center p-3 rounded-lg 
+           + border transition-all duration-200',
+       287 +                selectedModel === 'flash'
+       288 +                  ? 'bg-blue-400/10 border-blue-400/50 
+           + text-blue-400'
+       289 +                  : 'bg-gray-900 border-gray-700 
+           + text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+       290 +              )}
+       291 +            >
+       292 +              <Zap className="h-5 w-5 mb-1" />
+       293 +              <span className="text-xs 
+           + font-medium">{t('ui:model.flash.name')}</span>
+       294 +              <span className="text-[10px] 
+           + opacity-70">{t('ui:model.flash.description')}</span>
+       295 +            </button>
+       296 +            <button
+       297 +              onClick={() => setSelectedModel('pro')}
+       298 +              className={cn(
+       299 +                'flex flex-col items-center p-3 rounded-lg 
+           + border transition-all duration-200',
+       300 +                selectedModel === 'pro'
+       301 +                  ? 'bg-purple-400/10 border-purple-400/50 
+           + text-purple-400'
+       302 +                  : 'bg-gray-900 border-gray-700 
+           + text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+       303 +              )}
+       304 +            >
+       305 +              <Crown className="h-5 w-5 mb-1" />
+       306 +              <span className="text-xs 
+           + font-medium">{t('ui:model.pro.name')}</span>
+       307 +              <span className="text-[10px] 
+           + opacity-70">{t('ui:model.pro.description')}</span>
+       308 +            </button>
+       309 +          </div>
+       310 +          {selectedTool === 'edit' && (
+       311 +            <p className="text-xs text-gray-500 mt-2">
+       312 +              {t('ui:model.maxRefImages', { count: 
+           + maxReferenceImages })}
+       313 +            </p>
+       314 +          )}
+       315 +        </div>
+       316 +  
+       317          {/* File Upload - Only show for edit and mask modes 
+             */}
+       318          {selectedTool !== 'generate' && (
+       319            <div>
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 2     
+     additions and 2 removals
+       338                  isDragOver
+       339                    ? "border-purple-400 bg-purple-400/10"
+       340                    : "border-gray-600 hover:border-gray-500",
+       341 -                (selectedTool === 'edit' && 
+           -  editReferenceImages.length >= 2
+           -  ) && "opacity-50 pointer-events-none"
+       341 +                (selectedTool === 'edit' && 
+           +  editReferenceImages.length >= maxReferenceImages
+           +  ) && "opacity-50 pointer-events-none"
+       342                )}
+       343              >
+       344              <input
+     ...
+       347                accept="image/*"
+       348                onChange={handleFileUpload}
+       349                className="hidden"
+       350 -              disabled={selectedTool === 'edit' && 
+           -  editReferenceImages.length >= 2}
+       350 +              disabled={selectedTool === 'edit' && 
+           +  editReferenceImages.length >= maxReferenceImages}
+       351              />
+       352              
+       353              <div className="text-center">
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 1     
+     addition and 1 removal
+       369                    size="sm"
+       370                    onClick={() => 
+             fileInputRef.current?.click()}
+       371                    className="text-xs"
+       372 -                  disabled={selectedTool === 'edit' && 
+           -  editReferenceImages.length >= 2}
+       372 +                  disabled={selectedTool === 'edit' && 
+           +  editReferenceImages.length >= maxReferenceImages}
+       373                  >
+       374                    {t('ui:promptComposer.buttons.chooseFile')}
+       375                  </Button>
+
+● 现在让我找到文件末尾，添加 Pro 模型确认弹窗：
+
+● Read(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Read 57 lines
+
+● Update(NanoBananaEditor\src\components\PromptComposer.tsx)
+  ⎿  Updated NanoBananaEditor\src\components\PromptComposer.tsx with 32 
+     additions
+       631            title="登录后继续"
+       632            description={`请登录后使用${selectedTool === 
+             'generate' ? '图片生成' : selectedTool === 'edit' ? 
+             '图片编辑' : '图片处理'}功能`}
+       633          />
+       634 +  
+       635 +        {/* Pro Model Confirmation Modal */}
+       636 +        {showProModelConfirm && (
+       637 +          <div className="fixed inset-0 bg-black/50 flex 
+           + items-center justify-center p-4 z-50">
+       638 +            <div className="bg-gray-900 border 
+           + border-gray-700 rounded-lg p-6 max-w-md w-full">
+       639 +              <div className="flex items-center mb-4">
+       640 +                <Crown className="h-6 w-6 text-purple-400 
+           + mr-3" />
+       641 +                <h3 className="text-lg font-medium 
+           + text-gray-100">
+       642 +                  {t('ui:model.confirmDialog.title')}
+       643 +                </h3>
+       644 +              </div>
+       645 +              <p className="text-gray-300 mb-6">
+       646 +                {t('ui:model.confirmDialog.message')}
+       647 +              </p>
+       648 +              <div className="flex space-x-3">
+       649 +                <Button
+       650 +                  variant="outline"
+       651 +                  onClick={() => 
+           + setShowProModelConfirm(false)}
+       652 +                  className="flex-1"
+       653 +                >
+       654 +                  {t('ui:model.confirmDialog.cancel')}
+       655 +                </Button>
+       656 +                <Button
+       657 +                  onClick={handleProModelConfirm}
+       658 +                  className="flex-1 bg-purple-600 
+           + hover:bg-purple-700"
+       659 +                >
+       660 +                  {t('ui:model.confirmDialog.confirm')}
+       661 +                </Button>
+       662 +              </div>
+       663 +            </div>
+       664 +          </div>
+       665 +        )}
+       666        </>
+       667      );
+       668    };
+       669   \ No newline at end of file
+
+● 现在运行类型检查确保代码没有问题：
+
+● Bash(cd
+      "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBananaEditor"
+      && npm run type-check 2>&1 || npx tsc --noEmit 2>&1)
+  ⎿  npm error Missing script: "type-check"  
+     npm error
+     npm error To see a list of scripts, run:
+     … +3 lines (ctrl+o to expand)
+
+● Bash(cd
+      "D:/MyFolders/Developments/0Python/250908_AIImageEditor/NanoBananaEditor"
+      && npx tsc --noEmit 2>&1)
+  ⎿  (No content)
+
+● 所有修改已完成，类型检查通过。
+
+  修改总结
+
+  前端修改
+
+  | 文件                                          | 修改内容
+                                                       |
+  |---------------------------------------------|---------------------------
+  -----------------------------------------------|
+  | src/store/useAppStore.ts                    | 添加了 ModelType
+  类型、MODEL_CONFIG 配置常量、selectedModel 状态和 setSelectedModel 方法 |
+  | src/services/geminiServiceExtended.ts       | 在请求接口中添加 model
+  参数，动态选择 API 模型名                                           |
+  | src/services/integratedGenerationService.ts | 传递 model 参数到 Gemini
+  服务                                                   |
+  | src/hooks/useImageGeneration.ts             | 从 store 获取
+  selectedModel 并传递给生成/编辑请求                                     |
+  | src/components/PromptComposer.tsx           | 添加模型选择 UI、Pro
+  模型确认弹窗、动态参考图数量限制
+   |
+  | src/i18n/resources/zh/ui.json               | 添加模型相关中文翻译
+                                                           |
+  | src/i18n/resources/en/ui.json               | 添加模型相关英文翻译
+                                                           |
+
+  后端修改
+
+  | 文件                       | 修改内容                                |
+  |--------------------------|-------------------------------------|
+  | server/routes/gemini.cjs | 从请求参数中读取 model，动态选择模型名调用
+  Gemini API |
+
+  功能说明
+
+  1. 模型选择 UI：在工具模式下方新增显眼的模型选择区块（Flash/Pro）
+  2. 参考图片限制：Flash 最多 2 张，Pro 最多 4 张（Edit 模式下动态显示）
+  3. Pro 模型确认：每次使用 Pro 模型生成时会弹窗确认
+  4. 默认模型：Flash（便宜）
+
+
+

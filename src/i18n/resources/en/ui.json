@@ -5,13 +5,31 @@
   },
   "tools": {
     "generate": "Generate",
-    "edit": "Edit", 
+    "edit": "Edit",
     "mask": "Select",
     "descriptions": {
       "generate": "Create from text",
       "edit": "Modify existing",
       "mask": "Click to select"
     }
+  },
+  "model": {
+    "title": "Model",
+    "flash": {
+      "name": "Flash",
+      "description": "Fast/Cheap"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "Advanced/Expensive"
+    },
+    "confirmDialog": {
+      "title": "Confirm Pro Model Usage",
+      "message": "You have selected the Gemini 3 Pro model, which has higher generation costs. Are you sure you want to continue?",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "maxRefImages": "Max {{count}} ref images"
   },
   "promptComposer": {
     "mode": "Mode",

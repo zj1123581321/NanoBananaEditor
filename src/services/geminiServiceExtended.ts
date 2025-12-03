@@ -6,12 +6,15 @@ import { GoogleGenAI } from '@google/genai';
 import { appConfig, getBackendUrl, isMultiUserMode } from '../config/app';
 import { authService } from './authService';
 
+import { ModelType, MODEL_CONFIG } from '../store/useAppStore';
+
 export interface GenerationRequest {
   prompt: string;
   referenceImages?: string[]; // base64 array
   temperature?: number;
   seed?: number;
   projectId?: string;
+  model?: ModelType; // 模型选择
 }
 
 export interface EditRequest {
@@ -22,6 +25,7 @@ export interface EditRequest {
   temperature?: number;
   seed?: number;
   projectId?: string;
+  model?: ModelType; // 模型选择
 }
 
 export interface SegmentationRequest {
@@ -126,7 +130,7 @@ class GeminiServiceExtended {
    */
   private async directGenerateImage(request: GenerationRequest): Promise<string[]> {
     const contents: any[] = [{ text: request.prompt }];
-    
+
     // 添加参考图像
     if (request.referenceImages && request.referenceImages.length > 0) {
       request.referenceImages.forEach(image => {
@@ -139,8 +143,12 @@ class GeminiServiceExtended {
       });
     }
 
+    // 根据选择的模型获取 API 模型名
+    const modelType = request.model || 'flash';
+    const modelName = MODEL_CONFIG[modelType].apiName;
+
     const response = await this.directClient!.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: modelName,
       contents,
     });
 
@@ -190,8 +198,12 @@ class GeminiServiceExtended {
       });
     }
 
+    // 根据选择的模型获取 API 模型名
+    const modelType = request.model || 'flash';
+    const modelName = MODEL_CONFIG[modelType].apiName;
+
     const response = await this.directClient!.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: modelName,
       contents,
     });
 
@@ -233,7 +245,7 @@ Only segment the specific object or region requested. The mask should be a binar
     ];
 
     const response = await this.directClient!.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: MODEL_CONFIG.flash.apiName,
       contents: prompt,
     });
 
@@ -252,12 +264,14 @@ Only segment the specific object or region requested. The mask should be a binar
       
       if (isMultiUserMode()) {
         // 多用户模式：通过后端 API
+        const modelType = request.model || 'flash';
         const result = await this.callBackendAPI('/generate', {
           prompt: request.prompt,
           parameters: {
             temperature: request.temperature,
             seed: request.seed,
-            referenceImages: request.referenceImages
+            referenceImages: request.referenceImages,
+            model: MODEL_CONFIG[modelType].apiName // 传递模型名给后端
           },
           projectId: request.projectId
         });
@@ -322,6 +336,7 @@ Only segment the specific object or region requested. The mask should be a binar
       
       if (isMultiUserMode()) {
         // 多用户模式：通过后端 API
+        const modelType = request.model || 'flash';
         const result = await this.callBackendAPI('/edit', {
           instruction: request.instruction,
           imageData: request.originalImage,
@@ -329,7 +344,8 @@ Only segment the specific object or region requested. The mask should be a binar
           parameters: {
             temperature: request.temperature,
             seed: request.seed,
-            referenceImages: request.referenceImages
+            referenceImages: request.referenceImages,
+            model: MODEL_CONFIG[modelType].apiName // 传递模型名给后端
           },
           projectId: request.projectId
         });

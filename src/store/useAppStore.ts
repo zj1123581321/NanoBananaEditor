@@ -2,10 +2,38 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { Project, Generation, Edit, SegmentationMask, BrushStroke } from '../types';
 
+/**
+ * 模型类型定义
+ */
+export type ModelType = 'flash' | 'pro';
+
+/**
+ * 模型配置常量
+ */
+export const MODEL_CONFIG = {
+  flash: {
+    id: 'flash' as ModelType,
+    apiName: 'gemini-2.5-flash-image',
+    displayName: 'Flash',
+    description: '快速/经济',
+    maxReferenceImages: 2,
+  },
+  pro: {
+    id: 'pro' as ModelType,
+    apiName: 'gemini-3-pro-image-preview',
+    displayName: 'Pro',
+    description: '高级/更贵',
+    maxReferenceImages: 4,
+  }
+} as const;
+
 interface AppState {
   // Current project
   currentProject: Project | null;
-  
+
+  // Model selection
+  selectedModel: ModelType;
+
   // Canvas state
   canvasImage: string | null;
   canvasZoom: number;
@@ -73,8 +101,10 @@ interface AppState {
   setShowPromptPanel: (show: boolean) => void;
   
   setSelectedTool: (tool: 'generate' | 'edit' | 'mask') => void;
-  
+
   setCurrentLanguage: (language: 'en' | 'zh') => void;
+
+  setSelectedModel: (model: ModelType) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -82,6 +112,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       // Initial state
       currentProject: null,
+      selectedModel: 'flash',
       canvasImage: null,
       canvasZoom: 1,
       canvasPan: { x: 0, y: 0 },
@@ -170,6 +201,21 @@ export const useAppStore = create<AppState>()(
         set({ currentLanguage: language });
         // Persist language preference to localStorage
         localStorage.setItem('i18nextLng', language);
+      },
+
+      setSelectedModel: (model) => {
+        const maxImages = MODEL_CONFIG[model].maxReferenceImages;
+        const currentEditImages = get().editReferenceImages;
+
+        // 如果当前参考图片数量超出新模型限制，截断到允许的数量
+        if (currentEditImages.length > maxImages) {
+          set({
+            selectedModel: model,
+            editReferenceImages: currentEditImages.slice(0, maxImages)
+          });
+        } else {
+          set({ selectedModel: model });
+        }
       },
     }),
     { name: 'nano-banana-store' }

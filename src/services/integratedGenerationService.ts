@@ -67,7 +67,8 @@ class IntegratedGenerationService {
         referenceImages: request.referenceImages,
         temperature: request.temperature,
         seed: request.seed,
-        projectId: request.projectId
+        projectId: request.projectId,
+        model: request.model // 传递模型参数
       });
       
       // 检查生成结果是否有效
@@ -173,7 +174,8 @@ class IntegratedGenerationService {
         referenceImages: request.referenceImages,
         maskImage: request.maskImage,
         temperature: request.temperature,
-        seed: request.seed
+        seed: request.seed,
+        model: request.model // 传递模型参数
       });
 
       // 检查编辑结果是否有效

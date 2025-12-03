@@ -2,12 +2,12 @@ import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Textarea } from './ui/Textarea';
 import { Button } from './ui/Button';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, MODEL_CONFIG, ModelType } from '../store/useAppStore';
 import { useImageGeneration, useImageEditing } from '../hooks/useImageGeneration';
 import { useImagePaste, useImagePasteStatus } from '../hooks/useImagePaste';
 import { useImageDrop } from '../hooks/useImageDrop';
 import { useAuthInterceptor } from '../hooks/useAuthInterceptor';
-import { Upload, Wand2, Edit3, MousePointer, HelpCircle, ChevronDown, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
+import { Upload, Wand2, Edit3, MousePointer, HelpCircle, ChevronDown, ChevronRight, RotateCcw, Sparkles, Zap, Crown } from 'lucide-react';
 import { blobToBase64 } from '../utils/imageUtils';
 import { PromptHints } from './PromptHints';
 import { PromptOptimizer } from './PromptOptimizer';
@@ -40,6 +40,8 @@ export const PromptComposer: React.FC = () => {
     showPromptPanel,
     setShowPromptPanel,
     clearBrushStrokes,
+    selectedModel,
+    setSelectedModel,
   } = useAppStore();
 
   const { generate } = useImageGeneration();
@@ -48,7 +50,11 @@ export const PromptComposer: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showHintsModal, setShowHintsModal] = useState(false);
   const [showPromptOptimizer, setShowPromptOptimizer] = useState(false);
+  const [showProModelConfirm, setShowProModelConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 获取当前模型的最大参考图数量
+  const maxReferenceImages = MODEL_CONFIG[selectedModel].maxReferenceImages;
   
   // 认证拦截器
   const { 
@@ -83,7 +89,7 @@ export const PromptComposer: React.FC = () => {
         showError(t('ui:toast.imageUploadNotSupported'));
         return;
       } else if (selectedTool === 'edit') {
-        if (editReferenceImages.length < 2) {
+        if (editReferenceImages.length < maxReferenceImages) {
           addEditReferenceImage(imageData.dataUrl);
           showSuccess(t('ui:toast.stylePastedSuccess'));
         } else {
@@ -109,26 +115,13 @@ export const PromptComposer: React.FC = () => {
     enabled: true
   });
 
-  const handleGenerate = async () => {
-    if (!currentPrompt.trim()) return;
-    
-    // 检查认证状态
-    const actionName = selectedTool === 'generate' ? '图片生成' : 
-                      selectedTool === 'edit' ? '图片编辑' : '图片处理';
-    
-    const { canExecute } = await checkAuthAndExecute(async () => {}, actionName);
-    
-    if (!canExecute) {
-      // 用户未登录，已经显示登录弹窗
-      return;
-    }
-    
-    // 用户已登录或单用户模式，执行操作
+  // 实际执行生成/编辑的函数
+  const executeGeneration = async () => {
     if (selectedTool === 'generate') {
       const referenceImages = uploadedImages
         .filter(img => img.includes('base64,'))
         .map(img => img.split('base64,')[1]);
-        
+
       await generate({
         prompt: currentPrompt,
         referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
@@ -140,21 +133,51 @@ export const PromptComposer: React.FC = () => {
     }
   };
 
+  const handleGenerate = async () => {
+    if (!currentPrompt.trim()) return;
+
+    // 检查认证状态
+    const actionName = selectedTool === 'generate' ? '图片生成' :
+                      selectedTool === 'edit' ? '图片编辑' : '图片处理';
+
+    const { canExecute } = await checkAuthAndExecute(async () => {}, actionName);
+
+    if (!canExecute) {
+      // 用户未登录，已经显示登录弹窗
+      return;
+    }
+
+    // 如果选择了 Pro 模型，显示确认弹窗
+    if (selectedModel === 'pro') {
+      setShowProModelConfirm(true);
+      return;
+    }
+
+    // Flash 模型直接执行
+    await executeGeneration();
+  };
+
+  // Pro 模型确认后执行
+  const handleProModelConfirm = async () => {
+    setShowProModelConfirm(false);
+    await executeGeneration();
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       try {
         const base64 = await blobToBase64(file);
         const dataUrl = `data:${file.type};base64,${base64}`;
-        
+
         if (selectedTool === 'generate') {
-          // Add to reference images (max 2)
-          if (uploadedImages.length < 2) {
+          // Add to reference images (max based on model)
+          if (uploadedImages.length < maxReferenceImages) {
             addUploadedImage(dataUrl);
           }
         } else if (selectedTool === 'edit') {
-          // For edit mode, add to separate edit reference images (max 2)
-          if (editReferenceImages.length < 2) {
+          // For edit mode, add to separate edit reference images (max based on model)
+          if (editReferenceImages.length < maxReferenceImages) {
             addEditReferenceImage(dataUrl);
           }
           // Set as canvas image if none exists
@@ -253,6 +276,44 @@ export const PromptComposer: React.FC = () => {
         </div>
       </div>
 
+      {/* Model Selection */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-300 mb-3">{t('ui:model.title')}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setSelectedModel('flash')}
+            className={cn(
+              'flex flex-col items-center p-3 rounded-lg border transition-all duration-200',
+              selectedModel === 'flash'
+                ? 'bg-blue-400/10 border-blue-400/50 text-blue-400'
+                : 'bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+            )}
+          >
+            <Zap className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">{t('ui:model.flash.name')}</span>
+            <span className="text-[10px] opacity-70">{t('ui:model.flash.description')}</span>
+          </button>
+          <button
+            onClick={() => setSelectedModel('pro')}
+            className={cn(
+              'flex flex-col items-center p-3 rounded-lg border transition-all duration-200',
+              selectedModel === 'pro'
+                ? 'bg-purple-400/10 border-purple-400/50 text-purple-400'
+                : 'bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+            )}
+          >
+            <Crown className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">{t('ui:model.pro.name')}</span>
+            <span className="text-[10px] opacity-70">{t('ui:model.pro.description')}</span>
+          </button>
+        </div>
+        {selectedTool === 'edit' && (
+          <p className="text-xs text-gray-500 mt-2">
+            {t('ui:model.maxRefImages', { count: maxReferenceImages })}
+          </p>
+        )}
+      </div>
+
       {/* File Upload - Only show for edit and mask modes */}
       {selectedTool !== 'generate' && (
         <div>
@@ -277,7 +338,7 @@ export const PromptComposer: React.FC = () => {
               isDragOver
                 ? "border-purple-400 bg-purple-400/10"
                 : "border-gray-600 hover:border-gray-500",
-              (selectedTool === 'edit' && editReferenceImages.length >= 2) && "opacity-50 pointer-events-none"
+              (selectedTool === 'edit' && editReferenceImages.length >= maxReferenceImages) && "opacity-50 pointer-events-none"
             )}
           >
           <input
@@ -286,7 +347,7 @@ export const PromptComposer: React.FC = () => {
             accept="image/*"
             onChange={handleFileUpload}
             className="hidden"
-            disabled={selectedTool === 'edit' && editReferenceImages.length >= 2}
+            disabled={selectedTool === 'edit' && editReferenceImages.length >= maxReferenceImages}
           />
           
           <div className="text-center">
@@ -308,7 +369,7 @@ export const PromptComposer: React.FC = () => {
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 className="text-xs"
-                disabled={selectedTool === 'edit' && editReferenceImages.length >= 2}
+                disabled={selectedTool === 'edit' && editReferenceImages.length >= maxReferenceImages}
               >
                 {t('ui:promptComposer.buttons.chooseFile')}
               </Button>
@@ -570,6 +631,38 @@ export const PromptComposer: React.FC = () => {
         title="登录后继续"
         description={`请登录后使用${selectedTool === 'generate' ? '图片生成' : selectedTool === 'edit' ? '图片编辑' : '图片处理'}功能`}
       />
+
+      {/* Pro Model Confirmation Modal */}
+      {showProModelConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <Crown className="h-6 w-6 text-purple-400 mr-3" />
+              <h3 className="text-lg font-medium text-gray-100">
+                {t('ui:model.confirmDialog.title')}
+              </h3>
+            </div>
+            <p className="text-gray-300 mb-6">
+              {t('ui:model.confirmDialog.message')}
+            </p>
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowProModelConfirm(false)}
+                className="flex-1"
+              >
+                {t('ui:model.confirmDialog.cancel')}
+              </Button>
+              <Button
+                onClick={handleProModelConfirm}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                {t('ui:model.confirmDialog.confirm')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
