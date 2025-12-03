@@ -55,8 +55,8 @@ async function callGeminiAPI(params) {
   console.log('🤖 调用 Gemini API:', {
     model: modelName,
     requestedModel: params.model,
-    prompt: params.prompt?.substring(0, 100) + '...',
-    hasImages: params.referenceImages?.length > 0
+    prompt: (params.prompt || params.instruction)?.substring(0, 100) + '...',
+    hasImages: params.referenceImages?.length > 0 || !!params.imageData
   });
 
   try {

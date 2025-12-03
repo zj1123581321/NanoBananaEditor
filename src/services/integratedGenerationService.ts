@@ -9,6 +9,7 @@ import { imageServerServiceExtended, SavedImage } from './imageServerServiceExte
 import { notificationService, GenerationNotificationData } from './notificationService';
 import { authService, AuthUser } from './authService';
 import { isFeatureEnabled } from '../config/app';
+import { MODEL_CONFIG } from '../store/useAppStore';
 
 export interface IntegratedGenerationRequest extends GenerationRequest {
   enableNotification?: boolean;
@@ -97,13 +98,15 @@ class IntegratedGenerationService {
         try {
           console.log('📢 发送企业微信通知...');
           
+          const modelType = request.model || 'flash';
+          const modelDisplayName = MODEL_CONFIG[modelType].displayName;
           const notificationData = {
             user: currentUser,
             prompt: request.prompt,
             parameters: {
               temperature: request.temperature,
               seed: request.seed,
-              model: 'Gemini 2.5 Flash Image'
+              model: `Gemini ${modelDisplayName}`
             },
             images: savedImages,
             processingTime,
@@ -197,13 +200,15 @@ class IntegratedGenerationService {
       let notificationSent = false;
       if (request.enableNotification !== false && notificationService.isConfigured()) {
         try {
+          const modelType = request.model || 'flash';
+          const modelDisplayName = MODEL_CONFIG[modelType].displayName;
           const notificationData: GenerationNotificationData = {
             user: currentUser,
             prompt: `[图片编辑] ${request.instruction}`,
             parameters: {
               temperature: request.temperature,
               seed: request.seed,
-              model: 'Gemini 2.5 Flash Image (Edit)'
+              model: `Gemini ${modelDisplayName} (Edit)`
             },
             images: savedImages,
             processingTime,

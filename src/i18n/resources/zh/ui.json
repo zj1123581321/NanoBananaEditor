@@ -17,11 +17,11 @@
     "title": "模型",
     "flash": {
       "name": "Flash",
-      "description": "快速/经济"
+      "description": "¥0.3/张"
     },
     "pro": {
       "name": "Pro",
-      "description": "高级/更贵"
+      "description": "¥1.2/张"
     },
     "confirmDialog": {
       "title": "使用高级模型确认",
@@ -62,8 +62,8 @@
       "willBeProcessed": "将自动处理",
       "formats": "PNG, JPEG, GIF, WebP • 最大 10MB • Ctrl+V",
       "editDescription": "使用遮罩编辑图像",
-      "editStyleHint": "可选的风格参考，最多2张图片",
-      "editUploadHint": "上传要编辑的图像，最多2张图片",
+      "editStyleHint": "可选的风格参考，最多{{count}}张图片",
+      "editUploadHint": "上传要编辑的图像，最多{{count}}张图片",
       "referenceLabel": "参考 {{index}}"
     },
     "advanced": {
@@ -100,7 +100,7 @@
     "creatingImage": "正在创建您的图像...",
     "brushStroke": "笔触",
     "brushStrokes": "笔触",
-    "poweredBy": "由 Gemini 2.5 Flash Image 提供支持"
+    "poweredBy": "由 Gemini Nano Banana 提供支持"
   },
   "history": {
     "title": "历史记录和变体",

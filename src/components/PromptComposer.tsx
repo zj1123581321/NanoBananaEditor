@@ -326,7 +326,9 @@ export const PromptComposer: React.FC = () => {
           )}
           {selectedTool === 'edit' && (
             <p className="text-xs text-gray-500 mb-3">
-              {canvasImage ? t('ui:promptComposer.upload.editStyleHint') : t('ui:promptComposer.upload.editUploadHint')}
+              {canvasImage
+                ? t('ui:promptComposer.upload.editStyleHint', { count: maxReferenceImages })
+                : t('ui:promptComposer.upload.editUploadHint', { count: maxReferenceImages })}
             </p>
           )}
 

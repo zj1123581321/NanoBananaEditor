@@ -15,14 +15,14 @@ export const MODEL_CONFIG = {
     id: 'flash' as ModelType,
     apiName: 'gemini-2.5-flash-image',
     displayName: 'Flash',
-    description: '快速/经济',
+    description: '¥0.3/张',
     maxReferenceImages: 2,
   },
   pro: {
     id: 'pro' as ModelType,
     apiName: 'gemini-3-pro-image-preview',
     displayName: 'Pro',
-    description: '高级/更贵',
+    description: '¥1.2/张',
     maxReferenceImages: 4,
   }
 } as const;
