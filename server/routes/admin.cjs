@@ -660,7 +660,7 @@ router.get('/logs', adminMiddleware, async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let logsQuery = supabaseService.supabase
       .from('ai_image_editor_action_logs')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + parseInt(limit) - 1);
 
