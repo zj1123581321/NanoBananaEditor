@@ -269,10 +269,14 @@ const columns: DataTableColumns = [
       : '从未登录'
   },
   {
-    title: '生成次数',
-    key: 'generation_count',
+    title: '操作次数',
+    key: 'operation_count',
     width: 100,
-    render: (row: any) => row.user_stats?.generation_count || 0
+    render: (row: any) => {
+      const genCount = row.user_stats?.generation_count || 0
+      const editCount = row.user_stats?.edit_count || 0
+      return genCount + editCount
+    }
   },
   {
     title: 'Token 使用',
