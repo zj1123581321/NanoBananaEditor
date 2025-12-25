@@ -704,12 +704,17 @@ router.get('/logs', adminMiddleware, async (req, res) => {
     // 转换日志格式以匹配前端期望
     const formattedLogs = (logsData || []).map(log => ({
       id: log.id,
+      user_email: usersMap[log.user_id]?.username || 'Unknown',
       userName: usersMap[log.user_id]?.username || 'Unknown',
       action: log.action,
       description: log.details?.description || log.action,
+      created_at: log.created_at,
       createdAt: log.created_at,
       userAvatar: null,
-      details: log.details
+      details: log.details,
+      tokens_used: log.details?.tokenUsed || log.details?.tokens_used,
+      processing_time: log.details?.processingTime || log.details?.processing_time,
+      ip_address: log.ip_address
     }));
 
     res.json({
