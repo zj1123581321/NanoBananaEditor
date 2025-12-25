@@ -390,7 +390,7 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
         };
       }
       usageTrendMap[date].generations += stat.generation_count || 0;
-      usageTrendMap[date].tokens += stat.token_consumed || 0;
+      usageTrendMap[date].tokens += stat.total_tokens || 0;
     });
     
     const usageTrend = Object.values(usageTrendMap)
@@ -407,7 +407,7 @@ router.get('/stats/overview', adminMiddleware, async (req, res) => {
           value: 0
         };
       }
-      tokenDistributionMap[username].value += stat.token_consumed || 0;
+      tokenDistributionMap[username].value += stat.total_tokens || 0;
     });
     
     const tokenDistribution = Object.values(tokenDistributionMap)
@@ -521,7 +521,7 @@ router.get('/stats/usage', adminMiddleware, async (req, res) => {
         };
       }
       acc[key].generations += stat.generation_count || 0;
-      acc[key].tokens += stat.token_consumed || 0;
+      acc[key].tokens += stat.total_tokens || 0;
       acc[key].requests += stat.request_count || 0;
       acc[key].activeUsers.add(stat.user_id);
       return acc;
@@ -547,7 +547,7 @@ router.get('/stats/usage', adminMiddleware, async (req, res) => {
           lastActive: stat.date
         };
       }
-      userStats[username].tokens += stat.token_consumed || 0;
+      userStats[username].tokens += stat.total_tokens || 0;
       userStats[username].generations += stat.generation_count || 0;
       if (stat.date > userStats[username].lastActive) {
         userStats[username].lastActive = stat.date;
@@ -602,7 +602,7 @@ router.get('/stats/tokens', adminMiddleware, async (req, res) => {
       if (!acc[username]) {
         acc[username] = { name: username, value: 0 };
       }
-      acc[username].value += stat.token_consumed || 0;
+      acc[username].value += stat.total_tokens || 0;
       return acc;
     }, {});
 
