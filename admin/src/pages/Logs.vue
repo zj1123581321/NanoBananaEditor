@@ -61,6 +61,7 @@
       :loading="loading"
       :pagination="paginationConfig"
       :row-key="(row: any) => row.id"
+      remote
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
     />
@@ -201,12 +202,6 @@ const columns: DataTableColumns = [
     key: 'processing_time',
     width: 100,
     render: (row: any) => row.processing_time ? `${row.processing_time}ms` : '-'
-  },
-  {
-    title: 'IP 地址',
-    key: 'ip_address',
-    width: 130,
-    render: (row: any) => row.ip_address || '-'
   },
   {
     title: '状态',
